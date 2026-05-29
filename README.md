@@ -41,3 +41,7 @@ brew uninstall s4na/tachikoma/tachikoma
 swift build
 swift run tachikoma --help
 ```
+
+## ライセンス
+
+MIT
