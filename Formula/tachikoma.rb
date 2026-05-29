@@ -45,6 +45,6 @@ class Tachikoma < Formula
   end
 
   test do
-    assert_match "registers it to open at login", shell_output("#{bin}/tachikoma --help")
+    assert_match "syncs its login startup setting", shell_output("#{bin}/tachikoma --help")
   end
 end

@@ -29,6 +29,7 @@ tachikoma
 
 ```sh
 launchctl bootout "gui/$(id -u)" "$HOME/Library/LaunchAgents/com.s4na.tachikoma.plist" 2>/dev/null
+launchctl bootout "gui/$(id -u)" "$HOME/Library/LaunchAgents/homebrew.mxcl.tachikoma.plist" 2>/dev/null
 rm -f "$HOME/Library/LaunchAgents/com.s4na.tachikoma.plist"
 rm -f "$HOME/Library/LaunchAgents/homebrew.mxcl.tachikoma.plist"
 brew uninstall s4na/tachikoma/tachikoma

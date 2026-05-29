@@ -7,6 +7,6 @@ public enum MenuContent {
     public static let helpText = """
         tachikoma
 
-        Starts a minimal macOS menu bar app and registers it to open at login.
+        Starts a minimal macOS menu bar app and syncs its login startup setting.
         """
 }
