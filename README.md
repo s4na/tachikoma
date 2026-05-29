@@ -1,43 +1,47 @@
 # tachikoma
 
-Tachikoma is a macOS menu bar app.
+Tachikoma は macOS のメニューバーアプリです。
 
-The current MVP keeps a small `t` in the macOS menu bar. Clicking it opens a
-menu with `tachikoma です` and a quit item.
+現在の MVP では、macOS のメニューバーに小さな `t` を表示します。
+クリックすると `tachikoma です` と終了項目を含むメニューが開きます。
 
-## Install from Homebrew
+## Homebrew からインストール
 
-Until the first release is tagged, install the HEAD formula:
+最初のリリースタグが作られるまでは、HEAD formula としてインストールしてください。
 
 ```sh
 brew tap s4na/tachikoma https://github.com/s4na/tachikoma.git
 brew install --HEAD s4na/tachikoma/tachikoma
 ```
 
-Then choose how to start the menu bar app.
+その後、メニューバーアプリの起動方法を選びます。
 
-To launch it for the current session:
+現在のセッションだけで起動する場合:
 
 ```sh
 tachikoma
 ```
 
-To launch it now and automatically at login:
+今すぐ起動し、ログイン時にも自動起動する場合:
 
 ```sh
 brew services start s4na/tachikoma/tachikoma
 ```
 
-To remove the login item before uninstalling:
+アンインストール前にログイン項目を削除する場合:
 
 ```sh
 brew services stop s4na/tachikoma/tachikoma
 brew uninstall s4na/tachikoma/tachikoma
 ```
 
-## Development
+## 開発
 
 ```sh
 swift build
 swift run tachikoma --help
 ```
+
+## ライセンス
+
+MIT
