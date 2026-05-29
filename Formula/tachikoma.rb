@@ -15,11 +15,14 @@ class Tachikoma < Formula
   end
 
   def post_install
+    launch_agents = Pathname("#{Dir.home}/Library/LaunchAgents")
+    launch_agents.mkpath
+    legacy_plist = launch_agents/"homebrew.mxcl.tachikoma.plist"
+    legacy_plist.unlink if legacy_plist.exist?
+
     startup_off = `/usr/bin/defaults read com.s4na.tachikoma startupOff 2>/dev/null`.strip == "1"
     return if startup_off
 
-    launch_agents = Pathname("#{Dir.home}/Library/LaunchAgents")
-    launch_agents.mkpath
     plist = launch_agents/"com.s4na.tachikoma.plist"
     plist.write <<~XML
       <?xml version="1.0" encoding="UTF-8"?>

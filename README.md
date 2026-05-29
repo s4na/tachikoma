@@ -23,13 +23,14 @@ tachikoma
 
 ログイン時の自動起動を止める場合は、メニューバーの `t` から `設定` を開き、`start up 起動 off` をオンにしてください。
 このフラグはデフォルトではオフです。
-メニューでオフにした場合、次回ログイン以降は自動起動しません。
+このフラグをオンにした場合、次回ログイン以降は自動起動しません。
 
 アンインストール前に、既に読み込まれているログイン項目も停止する場合は、次のコマンドを実行してください。
 
 ```sh
 launchctl bootout "gui/$(id -u)" "$HOME/Library/LaunchAgents/com.s4na.tachikoma.plist" 2>/dev/null
 rm -f "$HOME/Library/LaunchAgents/com.s4na.tachikoma.plist"
+rm -f "$HOME/Library/LaunchAgents/homebrew.mxcl.tachikoma.plist"
 brew uninstall s4na/tachikoma/tachikoma
 ```
 

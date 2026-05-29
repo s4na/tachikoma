@@ -3,6 +3,7 @@ import Foundation
 public struct LaunchAgentManager {
     public static let defaultsSuiteName = "com.s4na.tachikoma"
     public static let label = "com.s4na.tachikoma"
+    public static let legacyHomebrewServiceLabel = "homebrew.mxcl.tachikoma"
     public static let startupOffDefaultsKey = "startupOff"
 
     public let label: String
@@ -35,6 +36,8 @@ public struct LaunchAgentManager {
     }
 
     public func install() throws {
+        try removeLegacyHomebrewServicePlist()
+
         try fileManager.createDirectory(
             at: plistURL.deletingLastPathComponent(),
             withIntermediateDirectories: true
@@ -49,6 +52,8 @@ public struct LaunchAgentManager {
     }
 
     public func remove() throws {
+        try removeLegacyHomebrewServicePlist()
+
         if fileManager.fileExists(atPath: plistURL.path) {
             try fileManager.removeItem(at: plistURL)
         }
@@ -72,5 +77,15 @@ public struct LaunchAgentManager {
         }
 
         return CommandLine.arguments.first ?? "tachikoma"
+    }
+
+    private func removeLegacyHomebrewServicePlist() throws {
+        let legacyURL = plistURL
+            .deletingLastPathComponent()
+            .appendingPathComponent("\(Self.legacyHomebrewServiceLabel).plist")
+
+        if fileManager.fileExists(atPath: legacyURL.path) {
+            try fileManager.removeItem(at: legacyURL)
+        }
     }
 }
