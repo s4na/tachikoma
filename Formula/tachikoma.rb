@@ -1,3 +1,6 @@
+# frozen_string_literal: true
+
+# Homebrew formula for Tachikoma.
 class Tachikoma < Formula
   desc "Minimal macOS menu bar app for Tachikoma"
   homepage "https://github.com/s4na/tachikoma"
@@ -11,11 +14,37 @@ class Tachikoma < Formula
     bin.install ".build/release/tachikoma"
   end
 
-  service do
-    run opt_bin/"tachikoma"
+  def post_install
+    startup_off = `/usr/bin/defaults read com.s4na.tachikoma startupOff 2>/dev/null`.strip == "1"
+    return if startup_off
+
+    launch_agents = Pathname("#{Dir.home}/Library/LaunchAgents")
+    launch_agents.mkpath
+    plist = launch_agents/"com.s4na.tachikoma.plist"
+    plist.write <<~XML
+      <?xml version="1.0" encoding="UTF-8"?>
+      <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+      <plist version="1.0">
+      <dict>
+        <key>Label</key>
+        <string>com.s4na.tachikoma</string>
+        <key>ProgramArguments</key>
+        <array>
+          <string>#{opt_bin}/tachikoma</string>
+        </array>
+        <key>RunAtLoad</key>
+        <true/>
+      </dict>
+      </plist>
+    XML
+
+    quiet_system "/bin/launchctl", "bootout", "gui/#{Process.uid}", plist.to_s
+    return if quiet_system "/bin/launchctl", "bootstrap", "gui/#{Process.uid}", plist.to_s
+
+    opoo "Failed to register Tachikoma as a login item. Run `tachikoma` once to retry."
   end
 
   test do
-    assert_match "Starts a minimal macOS menu bar app", shell_output("#{bin}/tachikoma --help")
+    assert_match "registers it to open at login", shell_output("#{bin}/tachikoma --help")
   end
 end
