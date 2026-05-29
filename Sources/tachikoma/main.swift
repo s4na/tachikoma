@@ -1,11 +1,6 @@
 import AppKit
 import TachikomaCore
 
-if CommandLine.arguments.contains("--help") || CommandLine.arguments.contains("-h") {
-    print(MenuContent.helpText)
-    exit(EXIT_SUCCESS)
-}
-
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
@@ -45,7 +40,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
-let app = NSApplication.shared
-let delegate = AppDelegate()
-app.delegate = delegate
-app.run()
+@main
+enum TachikomaApp {
+    @MainActor
+    static func main() {
+        if CommandLine.arguments.contains("--help") || CommandLine.arguments.contains("-h") {
+            print(MenuContent.helpText)
+            return
+        }
+
+        let app = NSApplication.shared
+        let delegate = AppDelegate()
+        app.delegate = delegate
+        app.run()
+    }
+}

@@ -4,7 +4,7 @@ class Tachikoma < Formula
   version "0.1.0"
   head "https://github.com/s4na/tachikoma.git", branch: "main"
 
-  depends_on :macos
+  depends_on macos: :ventura
 
   def install
     system "swift", "build", "--configuration", "release", "--disable-sandbox"
