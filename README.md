@@ -20,6 +20,20 @@ Then start the menu bar app:
 tachikoma
 ```
 
+To start Tachikoma now and launch it automatically at login, use Homebrew
+services:
+
+```sh
+brew services start s4na/tachikoma/tachikoma
+```
+
+To remove the login item before uninstalling:
+
+```sh
+brew services stop s4na/tachikoma/tachikoma
+brew uninstall s4na/tachikoma/tachikoma
+```
+
 ## Development
 
 ```sh

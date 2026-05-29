@@ -11,6 +11,10 @@ class Tachikoma < Formula
     bin.install ".build/release/tachikoma"
   end
 
+  service do
+    run opt_bin/"tachikoma"
+  end
+
   test do
     assert_match "Starts a minimal macOS menu bar app", shell_output("#{bin}/tachikoma --help")
   end
