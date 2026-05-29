@@ -3,7 +3,7 @@
 Tachikoma は macOS のメニューバーアプリです。
 
 現在の MVP では、macOS のメニューバーに小さな `t` を表示します。
-クリックすると `tachikoma です` と終了項目を含むメニューが開きます。
+クリックすると `tachikoma です`、設定、終了項目を含むメニューが開きます。
 
 ## Homebrew からインストール
 
@@ -21,10 +21,11 @@ brew install --HEAD s4na/tachikoma/tachikoma
 tachikoma
 ```
 
-ログイン時の自動起動を止める場合は、メニューバーの `t` から `設定` を開き、`Start up 起動 off` をオンにしてください。
+ログイン時の自動起動を止める場合は、メニューバーの `t` から `設定` を開き、`start up 起動 off` をオンにしてください。
 このフラグはデフォルトではオフです。
+メニューでオフにした場合、次回ログイン以降は自動起動しません。
 
-アンインストール前にログイン項目を削除する場合は、メニューから `Start up 起動 off` をオンにするか、次のコマンドを実行してください。
+アンインストール前に、既に読み込まれているログイン項目も停止する場合は、次のコマンドを実行してください。
 
 ```sh
 launchctl bootout "gui/$(id -u)" "$HOME/Library/LaunchAgents/com.s4na.tachikoma.plist" 2>/dev/null

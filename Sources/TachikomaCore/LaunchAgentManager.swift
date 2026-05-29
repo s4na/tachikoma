@@ -46,8 +46,6 @@ public struct LaunchAgentManager {
             options: 0
         )
         try data.write(to: plistURL, options: .atomic)
-
-        try? runLaunchctl(arguments: ["bootstrap", launchctlTarget, plistURL.path])
     }
 
     public func remove() throws {
@@ -74,22 +72,5 @@ public struct LaunchAgentManager {
         }
 
         return CommandLine.arguments.first ?? "tachikoma"
-    }
-
-    private var launchctlTarget: String {
-        "gui/\(getuid())"
-    }
-
-    private func runLaunchctl(arguments: [String]) throws {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/bin/launchctl")
-        process.arguments = arguments
-
-        try process.run()
-        process.waitUntilExit()
-
-        guard process.terminationStatus == 0 else {
-            throw CocoaError(.executableLoad)
-        }
     }
 }

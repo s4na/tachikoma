@@ -38,10 +38,7 @@ class Tachikoma < Formula
       </plist>
     XML
 
-    quiet_system "/bin/launchctl", "bootout", "gui/#{Process.uid}", plist.to_s
-    return if quiet_system "/bin/launchctl", "bootstrap", "gui/#{Process.uid}", plist.to_s
-
-    opoo "Failed to register Tachikoma as a login item. Run `tachikoma` once to retry."
+    ohai "Tachikoma will open automatically from the next login."
   end
 
   test do
