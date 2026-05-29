@@ -1,0 +1,60 @@
+name: Bump Homebrew Version
+
+on:
+  push:
+    branches:
+      - main
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    name: Bump patch version
+    runs-on: ubuntu-latest
+    if: >-
+      github.actor != 'github-actions[bot]' &&
+      !startsWith(github.event.head_commit.message, 'chore: bump Homebrew formula version')
+    permissions:
+      contents: write # Required to commit the formula patch version bump back to main.
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+        with:
+          persist-credentials: false
+
+      - name: Bump formula patch version
+        run: |
+          ruby - <<'RUBY'
+          path = "Formula/tachikoma.rb"
+          formula = File.read(path)
+
+          updated = formula.sub(/version "(\d+)\.(\d+)\.(\d+)"/) do
+            major = Regexp.last_match(1)
+            minor = Regexp.last_match(2)
+            patch = Regexp.last_match(3).to_i + 1
+            %(version "#{major}.#{minor}.#{patch}")
+          end
+
+          abort "Formula version was not found in #{path}" if updated == formula
+
+          File.write(path, updated)
+          RUBY
+
+      - name: Commit version bump
+        run: |
+          if git diff --quiet -- Formula/tachikoma.rb; then
+            echo "No Homebrew formula version change detected."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Formula/tachikoma.rb
+          git commit -m "chore: bump Homebrew formula version [skip ci]"
+          git -c "http.extraheader=AUTHORIZATION: bearer ${GITHUB_TOKEN}" push origin HEAD:main
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
