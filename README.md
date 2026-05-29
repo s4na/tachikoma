@@ -14,10 +14,25 @@ brew tap s4na/tachikoma https://github.com/s4na/tachikoma.git
 brew install --HEAD s4na/tachikoma/tachikoma
 ```
 
-Then start the menu bar app:
+Then choose how to start the menu bar app.
+
+To launch it for the current session:
 
 ```sh
 tachikoma
+```
+
+To launch it now and automatically at login:
+
+```sh
+brew services start s4na/tachikoma/tachikoma
+```
+
+To remove the login item before uninstalling:
+
+```sh
+brew services stop s4na/tachikoma/tachikoma
+brew uninstall s4na/tachikoma/tachikoma
 ```
 
 ## Development
