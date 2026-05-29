@@ -10,7 +10,8 @@ menu with `tachikoma です` and a quit item.
 Until the first release is tagged, install the HEAD formula:
 
 ```sh
-brew install --HEAD ./Formula/tachikoma.rb
+brew tap s4na/tachikoma https://github.com/s4na/tachikoma.git
+brew install --HEAD s4na/tachikoma/tachikoma
 ```
 
 Then start the menu bar app:
