@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "etc"
-
 # Homebrew formula for Tachikoma.
 class Tachikoma < Formula
   LAUNCH_AGENT_LABEL = "com.s4na.tachikoma"
@@ -27,11 +25,6 @@ class Tachikoma < Formula
   end
 
   def post_install
-    launch_agent_path.dirname.mkpath
-    rm launch_agent_path if launch_agent_path.exist? || launch_agent_path.symlink?
-    cp launchd_service_path, launch_agent_path
-    chmod 0644, launch_agent_path
-
     launchctl_bootout
     launchctl_bootstrap
     launchctl_kickstart
@@ -50,10 +43,6 @@ class Tachikoma < Formula
 
   private
 
-  def launch_agent_path
-    Pathname.new(Etc.getpwuid(Process.uid).dir)/"Library/LaunchAgents/#{LAUNCH_AGENT_LABEL}.plist"
-  end
-
   def launchctl_domain
     "gui/#{Process.uid}"
   end
@@ -67,7 +56,7 @@ class Tachikoma < Formula
   end
 
   def launchctl_bootstrap
-    system "/bin/launchctl", "bootstrap", launchctl_domain, launch_agent_path
+    system "/bin/launchctl", "bootstrap", launchctl_domain, launchd_service_path
   end
 
   def launchctl_kickstart
