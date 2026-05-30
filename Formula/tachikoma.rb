@@ -26,9 +26,6 @@ class Tachikoma < Formula
 
   def caveats
     <<~EOS
-      To start Tachikoma now and at login:
-        brew services start #{full_name}
-
       You can disable future login startup from Tachikoma's menu bar settings.
     EOS
   end
