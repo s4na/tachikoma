@@ -14,8 +14,8 @@ brew tap s4na/tachikoma https://github.com/s4na/tachikoma.git
 brew install --HEAD s4na/tachikoma/tachikoma
 ```
 
-インストール後、Tachikoma はログイン時に自動起動するよう登録されます。
-今すぐ起動する場合:
+インストール後、一度 Tachikoma を起動するとログイン時に自動起動するよう登録されます。
+初回起動する場合:
 
 ```sh
 tachikoma
