@@ -7,11 +7,9 @@ Tachikoma は macOS のメニューバーアプリです。
 
 ## Homebrew からインストール
 
-最初のリリースタグが作られるまでは、HEAD formula としてインストールしてください。
-
 ```sh
 brew tap s4na/tachikoma https://github.com/s4na/tachikoma.git
-brew install --HEAD s4na/tachikoma/tachikoma
+brew install s4na/tachikoma/tachikoma
 ```
 
 インストール後、一度 Tachikoma を起動するとログイン時に自動起動するよう登録されます。
