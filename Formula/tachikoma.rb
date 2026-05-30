@@ -26,7 +26,7 @@ class Tachikoma < Formula
 
   def post_install
     launch_agent_path.dirname.mkpath
-    rm_f launch_agent_path
+    rm launch_agent_path if launch_agent_path.exist? || launch_agent_path.symlink?
     cp launchd_service_path, launch_agent_path
     chmod 0644, launch_agent_path
 
