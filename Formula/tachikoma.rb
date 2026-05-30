@@ -38,5 +38,4 @@ class Tachikoma < Formula
   test do
     assert_match "syncs its login startup setting", shell_output("#{bin}/tachikoma --help")
   end
-
 end
