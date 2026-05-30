@@ -26,8 +26,7 @@ class Tachikoma < Formula
 
   def post_install
     launchctl_bootout
-    launchctl_bootstrap
-    launchctl_kickstart
+    launchctl_submit
   end
 
   def caveats
@@ -55,11 +54,7 @@ class Tachikoma < Formula
     quiet_system "/bin/launchctl", "bootout", launchctl_service
   end
 
-  def launchctl_bootstrap
-    system "/bin/launchctl", "bootstrap", launchctl_domain, launchd_service_path
-  end
-
-  def launchctl_kickstart
-    system "/bin/launchctl", "kickstart", "-k", launchctl_service
+  def launchctl_submit
+    system "/bin/launchctl", "submit", "-l", LAUNCH_AGENT_LABEL, "--", opt_bin/"tachikoma"
   end
 end
