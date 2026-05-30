@@ -54,5 +54,4 @@ class Tachikoma < Formula
   def launchctl_bootout
     quiet_system "/bin/launchctl", "bootout", launchctl_service
   end
-
 end
