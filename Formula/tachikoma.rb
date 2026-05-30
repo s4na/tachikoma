@@ -26,7 +26,8 @@ class Tachikoma < Formula
 
   def post_install
     launchctl_bootout
-    launchctl_submit
+    quiet_system "/usr/bin/pkill", "-x", "tachikoma"
+    system "/usr/bin/open", "-g", opt_bin/"tachikoma"
   end
 
   def caveats
@@ -54,7 +55,4 @@ class Tachikoma < Formula
     quiet_system "/bin/launchctl", "bootout", launchctl_service
   end
 
-  def launchctl_submit
-    system "/bin/launchctl", "submit", "-l", LAUNCH_AGENT_LABEL, "--", opt_bin/"tachikoma"
-  end
 end
