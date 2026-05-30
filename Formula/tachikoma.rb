@@ -61,10 +61,10 @@ class Tachikoma < Formula
     pid = Process.spawn(
       { "HOME" => user_home.to_s },
       opt_bin/"tachikoma",
-      chdir: user_home,
-      out: File::NULL,
-      err: File::NULL,
-      pgroup: true
+      chdir:  user_home,
+      out:    File::NULL,
+      err:    File::NULL,
+      pgroup: true,
     )
     Process.detach(pid)
   end
