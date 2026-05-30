@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   bump:
-    name: Bump patch version
+    name: Bump patch version and stable source
     runs-on: ubuntu-latest
     if: >-
       github.actor != 'github-actions[bot]' &&
@@ -24,27 +24,65 @@ jobs:
       - name: Checkout
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
         with:
+          fetch-depth: 0
           persist-credentials: false
 
-      - name: Bump formula patch version
+      - name: Bump formula stable source
         run: |
           ruby - <<'RUBY'
+          require "base64"
+          require "shellwords"
+
           path = "Formula/tachikoma.rb"
           formula = File.read(path)
 
+          version = nil
           updated = formula.sub(/version "(\d+)\.(\d+)\.(\d+)"/) do
             major = Regexp.last_match(1)
             minor = Regexp.last_match(2)
             patch = Regexp.last_match(3).to_i + 1
-            %(version "#{major}.#{minor}.#{patch}")
+            version = "#{major}.#{minor}.#{patch}"
+            %(version "#{version}")
           end
 
           abort "Formula version was not found in #{path}" if updated == formula
 
+          tag = "v#{version}"
+          url = "https://github.com/#{ENV.fetch("GITHUB_REPOSITORY")}/archive/refs/tags/#{tag}.tar.gz"
+
+          basic_auth = Base64.strict_encode64("x-access-token:#{ENV.fetch('GITHUB_TOKEN')}")
+          existing_tag_commit = `git rev-parse --verify --quiet #{tag}^{}`.strip
+          if existing_tag_commit.empty?
+            system("git", "tag", tag, ENV.fetch("GITHUB_SHA")) or abort "Failed to create #{tag}"
+            system(
+              "git",
+              "-c",
+              "http.https://github.com/.extraheader=AUTHORIZATION: basic #{basic_auth}",
+              "push",
+              "https://github.com/#{ENV.fetch("GITHUB_REPOSITORY")}.git",
+              tag,
+            ) or abort "Failed to push #{tag}"
+          elsif existing_tag_commit != ENV.fetch("GITHUB_SHA")
+            abort "#{tag} already exists at #{existing_tag_commit}, not #{ENV.fetch('GITHUB_SHA')}"
+          end
+
+          archive = "/tmp/tachikoma-#{tag}.tar.gz"
+          system("curl", "--fail", "--location", "--silent", "--show-error", url, "--output", archive) or abort "Failed to download #{url}"
+          sha256 = `sha256sum #{archive.shellescape}`.split.first
+          abort "Failed to calculate sha256 for #{archive}" if sha256.to_s.empty?
+
+          updated = updated.sub(%r{url "https://github\.com/[^"]+/archive/refs/tags/v[^"]+\.tar\.gz"}, %(url "#{url}"))
+          abort "Formula stable URL was not found in #{path}" unless updated.include?(%(url "#{url}"))
+
+          updated = updated.sub(/sha256 "[0-9a-f]{64}"/, %(sha256 "#{sha256}"))
+          abort "Formula sha256 was not found in #{path}" unless updated.include?(%(sha256 "#{sha256}"))
+
           File.write(path, updated)
           RUBY
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
 
-      - name: Commit version bump
+      - name: Commit formula bump
         run: |
           if git diff --quiet -- Formula/tachikoma.rb; then
             echo "No Homebrew formula version change detected."

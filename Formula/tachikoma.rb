@@ -4,7 +4,9 @@
 class Tachikoma < Formula
   desc "Minimal macOS menu bar app for Tachikoma"
   homepage "https://github.com/s4na/tachikoma"
+  url "https://github.com/s4na/tachikoma/archive/refs/tags/v0.1.4.tar.gz"
   version "0.1.4"
+  sha256 "af3a3b2da7a1166324c3fa686bcd6b1f2a412fbd569720c7615bda123a6937bf"
   head "https://github.com/s4na/tachikoma.git", branch: "main"
 
   depends_on macos: :ventura
