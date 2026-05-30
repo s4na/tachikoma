@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "etc"
-
 # Homebrew formula for Tachikoma.
 class Tachikoma < Formula
   LAUNCH_AGENT_LABEL = "com.s4na.tachikoma"
@@ -26,26 +24,16 @@ class Tachikoma < Formula
     run_at_load true
   end
 
-  def post_install
-    with_env(HOME: user_home) do
-      system HOMEBREW_BREW_FILE, "services", "start", full_name
-    end
-  end
-
   def caveats
     <<~EOS
-      Tachikoma starts in the background after installation and at login.
+      To start Tachikoma now and at login:
+        brew services start #{full_name}
+
       You can disable future login startup from Tachikoma's menu bar settings.
     EOS
   end
 
   test do
     assert_match "syncs its login startup setting", shell_output("#{bin}/tachikoma --help")
-  end
-
-  private
-
-  def user_home
-    Pathname.new(Etc.getpwuid(Process.uid).dir)
   end
 end

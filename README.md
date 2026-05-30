@@ -12,7 +12,11 @@ brew tap s4na/tachikoma https://github.com/s4na/tachikoma.git
 brew install s4na/tachikoma/tachikoma
 ```
 
-インストール後、Tachikoma はバックグラウンドで起動し、ログイン時にも自動起動するよう登録されます。
+インストール後、Tachikoma をバックグラウンドで起動し、ログイン時にも自動起動する場合:
+
+```sh
+brew services start s4na/tachikoma/tachikoma
+```
 
 ログイン時の自動起動を止める場合は、メニューバーの `t` から `設定` を開き、`start up 起動 off` をオンにしてください。
 このフラグはデフォルトではオフです。
