@@ -12,11 +12,10 @@ brew tap s4na/tachikoma https://github.com/s4na/tachikoma.git
 brew install s4na/tachikoma/tachikoma
 ```
 
-インストール後、一度 Tachikoma を起動するとログイン時に自動起動するよう登録されます。
-初回起動して登録する場合:
+インストール後、Tachikoma をバックグラウンドで起動し、ログイン時にも自動起動する場合:
 
 ```sh
-tachikoma
+brew services start s4na/tachikoma/tachikoma
 ```
 
 ログイン時の自動起動を止める場合は、メニューバーの `t` から `設定` を開き、`start up 起動 off` をオンにしてください。
@@ -26,6 +25,7 @@ tachikoma
 アンインストール前に、既に読み込まれているログイン項目も停止する場合は、次のコマンドを実行してください。
 
 ```sh
+brew services stop s4na/tachikoma/tachikoma
 launchctl bootout "gui/$(id -u)" "$HOME/Library/LaunchAgents/com.s4na.tachikoma.plist" 2>/dev/null
 launchctl bootout "gui/$(id -u)" "$HOME/Library/LaunchAgents/homebrew.mxcl.tachikoma.plist" 2>/dev/null
 rm -f "$HOME/Library/LaunchAgents/com.s4na.tachikoma.plist"
