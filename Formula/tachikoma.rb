@@ -27,7 +27,9 @@ class Tachikoma < Formula
   end
 
   def post_install
-    system({ "HOME" => user_home.to_s }, HOMEBREW_BREW_FILE, "services", "start", full_name)
+    with_env(HOME: user_home) do
+      system HOMEBREW_BREW_FILE, "services", "start", full_name
+    end
   end
 
   def caveats
