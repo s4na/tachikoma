@@ -15,7 +15,7 @@ brew install --HEAD s4na/tachikoma/tachikoma
 ```
 
 インストール後、一度 Tachikoma を起動するとログイン時に自動起動するよう登録されます。
-初回起動する場合:
+初回起動して登録する場合:
 
 ```sh
 tachikoma
