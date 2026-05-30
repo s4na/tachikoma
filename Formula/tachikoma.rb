@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "etc"
+
 # Homebrew formula for Tachikoma.
 class Tachikoma < Formula
   LAUNCH_AGENT_LABEL = "com.s4na.tachikoma"
@@ -27,7 +29,7 @@ class Tachikoma < Formula
   def post_install
     launchctl_bootout
     quiet_system "/usr/bin/pkill", "-x", "tachikoma"
-    system "/usr/bin/open", "-g", opt_bin/"tachikoma"
+    start_tachikoma
   end
 
   def caveats
@@ -53,5 +55,21 @@ class Tachikoma < Formula
 
   def launchctl_bootout
     quiet_system "/bin/launchctl", "bootout", launchctl_service
+  end
+
+  def start_tachikoma
+    pid = Process.spawn(
+      { "HOME" => user_home.to_s },
+      opt_bin/"tachikoma",
+      chdir: user_home,
+      out: File::NULL,
+      err: File::NULL,
+      pgroup: true
+    )
+    Process.detach(pid)
+  end
+
+  def user_home
+    Pathname.new(Etc.getpwuid(Process.uid).dir)
   end
 end
