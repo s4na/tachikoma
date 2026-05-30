@@ -72,17 +72,11 @@ public struct LaunchAgentManager {
     }
 
     public static func currentExecutablePath() -> String {
-        let executablePath = Bundle.main.executablePath ?? CommandLine.arguments.first ?? "tachikoma"
-        return stableHomebrewExecutablePath(for: executablePath)
-    }
-
-    public static func stableHomebrewExecutablePath(for executablePath: String) -> String {
-        guard let cellarRange = executablePath.range(of: "/Cellar/tachikoma/") else {
+        if let executablePath = Bundle.main.executablePath {
             return executablePath
         }
 
-        let homebrewPrefix = executablePath[..<cellarRange.lowerBound]
-        return "\(homebrewPrefix)/opt/tachikoma/bin/tachikoma"
+        return CommandLine.arguments.first ?? "tachikoma"
     }
 
     private func removeLegacyHomebrewServicePlist() throws {

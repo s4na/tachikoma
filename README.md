@@ -25,6 +25,7 @@ brew services start s4na/tachikoma/tachikoma
 アンインストール前に、既に読み込まれているログイン項目も停止する場合は、次のコマンドを実行してください。
 
 ```sh
+brew services stop s4na/tachikoma/tachikoma
 launchctl bootout "gui/$(id -u)" "$HOME/Library/LaunchAgents/com.s4na.tachikoma.plist" 2>/dev/null
 launchctl bootout "gui/$(id -u)" "$HOME/Library/LaunchAgents/homebrew.mxcl.tachikoma.plist" 2>/dev/null
 rm -f "$HOME/Library/LaunchAgents/com.s4na.tachikoma.plist"
