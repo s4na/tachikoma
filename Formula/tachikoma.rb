@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "etc"
+
 # Homebrew formula for Tachikoma.
 class Tachikoma < Formula
   LAUNCH_AGENT_LABEL = "com.s4na.tachikoma"
@@ -49,7 +51,7 @@ class Tachikoma < Formula
   private
 
   def launch_agent_path
-    Pathname.new("~/Library/LaunchAgents/#{LAUNCH_AGENT_LABEL}.plist").expand_path
+    Pathname.new(Etc.getpwuid(Process.uid).dir)/"Library/LaunchAgents/#{LAUNCH_AGENT_LABEL}.plist"
   end
 
   def launchctl_domain
