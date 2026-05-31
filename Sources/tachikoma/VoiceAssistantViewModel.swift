@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import TachikomaCore
 
@@ -6,6 +7,7 @@ final class VoiceAssistantViewModel: ObservableObject {
     @Published private var session = VoiceAssistantSession()
     @Published var transcript = ""
     @Published var mode: ConversationMode = .consultation
+    @Published var targetDirectory = FileManager.default.homeDirectoryForCurrentUser.path
 
     private let executor: CodexExecuting
 
@@ -19,13 +21,14 @@ final class VoiceAssistantViewModel: ObservableObject {
     var pendingPlan: ExecutionPlan? { session.pendingPlan }
     var executionLog: String { session.executionLog }
     var errorMessage: String? { session.errorMessage }
+    var acceptsInput: Bool { state != .awaitingApproval && state != .executing }
 
     func toggleMicrophone() {
         session.setMicrophoneEnabled(!session.isMicrophoneEnabled)
     }
 
     func submitTranscript() {
-        session.receiveTranscript(transcript, mode: mode)
+        session.receiveTranscript(transcript, mode: mode, targetDirectory: targetDirectory)
         transcript = ""
     }
 
@@ -37,12 +40,27 @@ final class VoiceAssistantViewModel: ObservableObject {
         guard let plan = session.markExecutionStarted() else { return }
 
         Task {
-            let exitCode = await executor.execute(command: plan.command) { [weak self] output in
+            let exitCode = await executor.execute(
+                command: plan.command,
+                workingDirectory: plan.targetDirectory
+            ) { [weak self] output in
                 Task { @MainActor in
                     self?.session.appendExecutionLog(output)
                 }
             }
             session.markExecutionCompleted(exitCode: exitCode)
+        }
+    }
+
+    func chooseTargetDirectory() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = false
+        panel.directoryURL = URL(fileURLWithPath: targetDirectory, isDirectory: true)
+
+        if panel.runModal() == .OK, let url = panel.url {
+            targetDirectory = url.path
         }
     }
 }

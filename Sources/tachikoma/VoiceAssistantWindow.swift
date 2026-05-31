@@ -31,7 +31,7 @@ struct VoiceAssistantWindow: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Tachikoma")
                     .font(.title2.bold())
-                Text("状態: \(viewModel.state.rawValue)")
+                Text("状態: \(stateTitle)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -46,6 +46,7 @@ struct VoiceAssistantWindow: View {
             Button(viewModel.isMicrophoneEnabled ? "マイクOFF" : "マイクON") {
                 viewModel.toggleMicrophone()
             }
+            .disabled(viewModel.state == .awaitingApproval || viewModel.state == .executing)
         }
     }
 
@@ -53,7 +54,7 @@ struct VoiceAssistantWindow: View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 10) {
                 if viewModel.messages.isEmpty {
-                    Text("相談内容や実装依頼を入力してください。命令モードでは承認するまで実行しません。")
+                    Text("相談内容や実装依頼を入力してください。命令モードでは実行計画を確認してから実行できます。")
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -146,12 +147,45 @@ struct VoiceAssistantWindow: View {
                         .stroke(Color(nsColor: .separatorColor))
                 )
             HStack {
+                TextField("対象ディレクトリ", text: $viewModel.targetDirectory)
+                    .textFieldStyle(.roundedBorder)
+                    .disabled(!viewModel.acceptsInput)
+                Button("選択") {
+                    viewModel.chooseTargetDirectory()
+                }
+                .disabled(!viewModel.acceptsInput)
+            }
+            HStack {
                 Spacer()
                 Button("送信") {
                     viewModel.submitTranscript()
                 }
-                .disabled(viewModel.transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .disabled(
+                    !viewModel.acceptsInput ||
+                        viewModel.transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                )
             }
+        }
+    }
+
+    private var stateTitle: String {
+        switch viewModel.state {
+        case .idle:
+            return "待機中"
+        case .listening:
+            return "聞き取り中"
+        case .transcribing:
+            return "文字起こし中"
+        case .thinking:
+            return "応答作成中"
+        case .awaitingApproval:
+            return "承認待ち"
+        case .executing:
+            return "実行中"
+        case .completed:
+            return "完了"
+        case .error:
+            return "エラー"
         }
     }
 

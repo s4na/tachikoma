@@ -1,17 +1,26 @@
 import Foundation
 
 public protocol CodexExecuting {
-    func execute(command: String, onOutput: @escaping @Sendable (String) -> Void) async -> Int32
+    func execute(
+        command: String,
+        workingDirectory: String,
+        onOutput: @escaping @Sendable (String) -> Void
+    ) async -> Int32
 }
 
 public struct ProcessCodexExecutor: CodexExecuting {
     public init() {}
 
-    public func execute(command: String, onOutput: @escaping @Sendable (String) -> Void) async -> Int32 {
+    public func execute(
+        command: String,
+        workingDirectory: String,
+        onOutput: @escaping @Sendable (String) -> Void
+    ) async -> Int32 {
         await withCheckedContinuation { continuation in
             let process = Process()
             process.executableURL = URL(fileURLWithPath: "/bin/zsh")
             process.arguments = ["-lc", command]
+            process.currentDirectoryURL = URL(fileURLWithPath: workingDirectory, isDirectory: true)
 
             let outputPipe = Pipe()
             process.standardOutput = outputPipe

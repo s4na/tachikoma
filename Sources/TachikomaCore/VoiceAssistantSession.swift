@@ -107,14 +107,40 @@ public struct VoiceAssistantSession {
 
     public mutating func setMicrophoneEnabled(_ enabled: Bool) {
         isMicrophoneEnabled = enabled
-        state = enabled ? .listening : .idle
+
+        switch state {
+        case .awaitingApproval, .executing:
+            break
+        default:
+            state = enabled ? .listening : .idle
+        }
+
         appendSystemMessage(enabled ? "マイクをONにしました。" : "マイクをOFFにしました。")
     }
 
-    public mutating func receiveTranscript(_ transcript: String, mode: ConversationMode) {
+    public mutating func receiveTranscript(
+        _ transcript: String,
+        mode: ConversationMode,
+        targetDirectory: String
+    ) {
+        guard state != .executing else {
+            appendSystemMessage("実行中は新しい依頼を送信できません。")
+            return
+        }
+        guard state != .awaitingApproval else {
+            appendSystemMessage("承認待ちの実行計画があります。実行またはキャンセルしてから送信してください。")
+            return
+        }
+
         let request = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !request.isEmpty else {
             fail("発話または入力が空です。")
+            return
+        }
+
+        let directory = targetDirectory.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard Self.isExistingDirectory(directory) else {
+            fail("対象ディレクトリが存在しません。")
             return
         }
 
@@ -135,7 +161,7 @@ public struct VoiceAssistantSession {
             )
             state = .completed
         case .instruction:
-            let plan = Self.makeExecutionPlan(for: request)
+            let plan = Self.makeExecutionPlan(for: request, targetDirectory: directory)
             pendingPlan = plan
             appendMessage(
                 role: .assistant,
@@ -196,10 +222,10 @@ public struct VoiceAssistantSession {
         messages.append(ConversationMessage(role: role, text: text))
     }
 
-    private static func makeExecutionPlan(for request: String) -> ExecutionPlan {
+    private static func makeExecutionPlan(for request: String, targetDirectory: String) -> ExecutionPlan {
         ExecutionPlan(
             request: request,
-            targetDirectory: FileManager.default.currentDirectoryPath,
+            targetDirectory: targetDirectory,
             affectedFiles: ["Codex が実行前に調査して特定します"],
             workItems: [
                 "要求内容を再確認する",
@@ -210,6 +236,11 @@ public struct VoiceAssistantSession {
             impact: "承認後にのみファイル変更やコマンド実行が発生します。",
             command: "codex exec \(shellQuoted(request))"
         )
+    }
+
+    private static func isExistingDirectory(_ path: String) -> Bool {
+        var isDirectory: ObjCBool = false
+        return FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory) && isDirectory.boolValue
     }
 
     private static func shellQuoted(_ value: String) -> String {
