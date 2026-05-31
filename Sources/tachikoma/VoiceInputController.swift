@@ -4,14 +4,21 @@ import Foundation
 @MainActor
 final class VoiceInputController: NSObject {
     var onVoiceActivity: ((Bool, Float) -> Void)?
+    var onSegmentFinished: ((URL) -> Void)?
 
-    private var recorder: AVAudioRecorder?
-    private var recordingURL: URL?
-    private var meterTimer: Timer?
-    private var silentTicks = 0
+    private let engine = AVAudioEngine()
+    private var segmentFile: AVAudioFile?
+    private var segmentURL: URL?
+    private var silentFrames = 0
+    private var segmentFrames = 0
+    private var lastPower: Float = -160
+
+    private let speechThreshold: Float = -45
+    private let silenceDurationFrames = 16_000
+    private let minimumSegmentFrames = 4_000
 
     var isRecording: Bool {
-        recorder?.isRecording == true
+        engine.isRunning
     }
 
     func startRecording() async throws {
@@ -20,38 +27,26 @@ final class VoiceInputController: NSObject {
             throw VoiceInputError.microphonePermissionDenied
         }
 
-        let directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("tachikoma-recordings", isDirectory: true)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let inputNode = engine.inputNode
+        let format = inputNode.outputFormat(forBus: 0)
+        inputNode.removeTap(onBus: 0)
+        inputNode.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self] buffer, _ in
+            Task { @MainActor in
+                self?.process(buffer: buffer, format: format)
+            }
+        }
 
-        let url = directory.appendingPathComponent("\(UUID().uuidString).wav")
-        let settings: [String: Any] = [
-            AVFormatIDKey: kAudioFormatLinearPCM,
-            AVSampleRateKey: 16_000,
-            AVNumberOfChannelsKey: 1,
-            AVLinearPCMBitDepthKey: 16,
-            AVLinearPCMIsFloatKey: false,
-            AVLinearPCMIsBigEndianKey: false
-        ]
-
-        let recorder = try AVAudioRecorder(url: url, settings: settings)
-        recorder.isMeteringEnabled = true
-        recorder.record()
-
-        self.recorder = recorder
-        recordingURL = url
-        silentTicks = 0
-        startMetering()
+        try engine.start()
+        onVoiceActivity?(false, lastPower)
     }
 
     func stopRecording() -> URL? {
-        guard let recorder else { return recordingURL }
-        recorder.stop()
-        meterTimer?.invalidate()
-        meterTimer = nil
-        self.recorder = nil
+        guard isRecording else { return nil }
+
+        engine.inputNode.removeTap(onBus: 0)
+        engine.stop()
         onVoiceActivity?(false, -160)
-        return recordingURL
+        return finishSegment(force: true)
     }
 
     private func requestMicrophoneAccess() async -> Bool {
@@ -62,23 +57,99 @@ final class VoiceInputController: NSObject {
         }
     }
 
-    private func startMetering() {
-        meterTimer?.invalidate()
-        meterTimer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                self?.updateMeter()
+    private func process(buffer: AVAudioPCMBuffer, format: AVAudioFormat) {
+        let power = averagePower(for: buffer)
+        lastPower = power
+        let speaking = power > speechThreshold
+
+        if speaking {
+            silentFrames = 0
+            if segmentFile == nil {
+                startSegment(format: format)
+            }
+        } else if segmentFile != nil {
+            silentFrames += Int(buffer.frameLength)
+        }
+
+        if segmentFile != nil {
+            do {
+                try segmentFile?.write(from: buffer)
+                segmentFrames += Int(buffer.frameLength)
+            } catch {
+                finishSegment(force: true)
+            }
+        }
+
+        onVoiceActivity?(speaking || segmentFile != nil, power)
+
+        if segmentFile != nil, silentFrames >= silenceDurationFrames {
+            let finishedURL = finishSegment(force: false)
+            if let finishedURL {
+                onSegmentFinished?(finishedURL)
             }
         }
     }
 
-    private func updateMeter() {
-        guard let recorder, recorder.isRecording else { return }
+    private func startSegment(format: AVAudioFormat) {
+        do {
+            let directory = FileManager.default.temporaryDirectory
+                .appendingPathComponent("tachikoma-recordings", isDirectory: true)
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
 
-        recorder.updateMeters()
-        let power = recorder.averagePower(forChannel: 0)
-        let speaking = power > -45
-        silentTicks = speaking ? 0 : silentTicks + 1
-        onVoiceActivity?(speaking || silentTicks < 4, power)
+            let url = directory.appendingPathComponent("\(UUID().uuidString).wav")
+            segmentFile = try AVAudioFile(forWriting: url, settings: format.settings)
+            segmentURL = url
+            segmentFrames = 0
+            silentFrames = 0
+        } catch {
+            segmentFile = nil
+            segmentURL = nil
+        }
+    }
+
+    @discardableResult
+    private func finishSegment(force: Bool) -> URL? {
+        defer {
+            segmentFile = nil
+            segmentURL = nil
+            segmentFrames = 0
+            silentFrames = 0
+        }
+
+        guard let url = segmentURL else { return nil }
+        guard force || segmentFrames >= minimumSegmentFrames else {
+            try? FileManager.default.removeItem(at: url)
+            return nil
+        }
+
+        return url
+    }
+
+    private func averagePower(for buffer: AVAudioPCMBuffer) -> Float {
+        guard let channelData = buffer.floatChannelData else {
+            return -160
+        }
+
+        let channelCount = Int(buffer.format.channelCount)
+        let frameLength = Int(buffer.frameLength)
+        guard frameLength > 0, channelCount > 0 else {
+            return -160
+        }
+
+        var squareSum: Float = 0
+        for channel in 0 ..< channelCount {
+            let samples = channelData[channel]
+            for frame in 0 ..< frameLength {
+                let sample = samples[frame]
+                squareSum += sample * sample
+            }
+        }
+
+        let meanSquare = squareSum / Float(frameLength * channelCount)
+        guard meanSquare > 0 else {
+            return -160
+        }
+        return 10 * log10(meanSquare)
     }
 }
 

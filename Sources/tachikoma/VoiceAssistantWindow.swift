@@ -47,7 +47,7 @@ struct VoiceAssistantWindow: View {
             }
             .pickerStyle(.segmented)
             .frame(width: 160)
-            Button(viewModel.isMicrophoneEnabled ? "録音停止" : "録音開始") {
+            Button(viewModel.isMicrophoneEnabled ? "待受停止" : "待受開始") {
                 viewModel.toggleMicrophone()
             }
             .disabled(!viewModel.isMicrophoneEnabled && !viewModel.acceptsInput)

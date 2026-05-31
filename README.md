@@ -7,8 +7,9 @@ Tachikoma は macOS のメニューバーアプリです。
 
 Voice Assistant では、`plan.md` の安全設計に沿って次の流れを確認できます。
 
-* マイク ON/OFF 状態の切り替え
-* 音声取得、音量ベースの VAD 表示、whisper.cpp CLI による文字起こし
+* マイク待受 ON/OFF 状態の切り替え
+* 音量ベースの VAD による発話区間検出
+* 発話区間だけを wav として保存し、whisper.cpp CLI で文字起こしして入力欄へ追記
 * Codex App Server への会話送信とストリーミング応答受信
 * 相談モードでの readonly 相談
 * 命令モードでの要件整理と実行計画作成
@@ -19,7 +20,8 @@ Voice Assistant では、`plan.md` の安全設計に沿って次の流れを確
 * 会話、文字起こし、実行、エラーのローカルログ保存
 
 Voice Assistant ウィンドウでは、Codex App Server URL と whisper.cpp のコマンドテンプレートを指定できます。
-whisper.cpp のコマンドテンプレートでは、録音した wav ファイルのパスとして `{audio}` を使えます。
+whisper.cpp のコマンドテンプレートでは、VAD が切り出した発話区間の wav ファイルのパスとして `{audio}` を使えます。
+待受中もマイク入力の音量は監視しますが、無音中の wav 保存や文字起こしは行いません。
 
 Codex App Server には次の JSON を POST します。
 

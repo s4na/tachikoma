@@ -98,6 +98,17 @@ import Testing
     #expect(session.pendingPlan != nil)
 }
 
+@Test func finishedTranscriptionReturnsToListeningWhenMicrophoneIsOn() {
+    var session = VoiceAssistantSession()
+
+    session.setMicrophoneEnabled(true)
+    session.markTranscribing()
+    session.finishTranscribing()
+
+    #expect(session.state == .listening)
+    #expect(session.isMicrophoneEnabled)
+}
+
 @Test func executionCanOnlyStartAfterApproval() throws {
     var session = VoiceAssistantSession()
     let directory = try temporaryDirectory()

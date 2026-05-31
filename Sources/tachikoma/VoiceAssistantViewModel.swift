@@ -35,6 +35,12 @@ final class VoiceAssistantViewModel: ObservableObject {
         self.voiceInput.onVoiceActivity = { [weak self] detected, level in
             self?.voiceDetected = detected
             self?.voiceLevel = level
+            if self?.isMicrophoneEnabled == true, self?.state == .listening {
+                self?.connectionStatus = detected ? "発話検出中" : "待受中"
+            }
+        }
+        self.voiceInput.onSegmentFinished = { [weak self] audioURL in
+            self?.transcribeSegment(audioURL)
         }
     }
 
@@ -55,9 +61,9 @@ final class VoiceAssistantViewModel: ObservableObject {
 
     func toggleMicrophone() {
         if voiceInput.isRecording {
-            stopRecordingAndTranscribe()
+            stopListening()
         } else if acceptsInput {
-            startRecording()
+            startListening()
         }
     }
 
@@ -96,7 +102,7 @@ final class VoiceAssistantViewModel: ObservableObject {
         if voiceInput.isRecording {
             _ = voiceInput.stopRecording()
             session.setMicrophoneEnabled(false)
-            try? logStore.append(ConversationLogEntry(kind: "voice", text: "recording stopped because window closed"))
+            try? logStore.append(ConversationLogEntry(kind: "voice", text: "listening stopped because window closed"))
         }
     }
 
@@ -112,13 +118,13 @@ final class VoiceAssistantViewModel: ObservableObject {
         }
     }
 
-    private func startRecording() {
+    private func startListening() {
         Task {
             do {
                 try await voiceInput.startRecording()
                 session.setMicrophoneEnabled(true)
-                connectionStatus = "録音中"
-                try? logStore.append(ConversationLogEntry(kind: "voice", text: "recording started"))
+                connectionStatus = "待受中"
+                try? logStore.append(ConversationLogEntry(kind: "voice", text: "listening started"))
             } catch {
                 session.completeWithError(error.localizedDescription)
                 try? logStore.append(ConversationLogEntry(kind: "error", text: error.localizedDescription))
@@ -126,15 +132,25 @@ final class VoiceAssistantViewModel: ObservableObject {
         }
     }
 
-    private func stopRecordingAndTranscribe() {
-        guard let audioURL = voiceInput.stopRecording() else {
-            session.setMicrophoneEnabled(false)
-            return
-        }
-
+    private func stopListening() {
+        let audioURL = voiceInput.stopRecording()
         session.setMicrophoneEnabled(false)
-        session.markTranscribing()
-        connectionStatus = "文字起こし中"
+        voiceDetected = false
+        voiceLevel = -160
+        connectionStatus = "待機中"
+        try? logStore.append(ConversationLogEntry(kind: "voice", text: "listening stopped"))
+
+        if let audioURL {
+            transcribeSegment(audioURL)
+        }
+    }
+
+    private func transcribeSegment(_ audioURL: URL) {
+        let shouldReflectTranscription = acceptsInput
+        if shouldReflectTranscription {
+            session.markTranscribing()
+            connectionStatus = "文字起こし中"
+        }
 
         let commandTemplate = whisperCommand
         Task {
@@ -144,9 +160,12 @@ final class VoiceAssistantViewModel: ObservableObject {
                         self?.session.appendExecutionLog(output)
                     }
                 }
-                transcript = text
+                appendTranscriptSegment(text)
+                if shouldReflectTranscription {
+                    session.finishTranscribing()
+                    connectionStatus = voiceInput.isRecording ? "待受中" : "待機中"
+                }
                 try? logStore.append(ConversationLogEntry(kind: "transcript", text: text))
-                await sendTranscribedVoice(text)
             } catch {
                 session.completeWithError(error.localizedDescription)
                 try? logStore.append(ConversationLogEntry(kind: "error", text: error.localizedDescription))
@@ -154,16 +173,19 @@ final class VoiceAssistantViewModel: ObservableObject {
         }
     }
 
-    private func send(_ text: String) async {
-        guard let request = session.beginTranscript(text, mode: mode, targetDirectory: targetDirectory) else {
-            return
-        }
+    private func appendTranscriptSegment(_ text: String) {
+        let segment = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !segment.isEmpty else { return }
 
-        await send(request)
+        if transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            transcript = segment
+        } else {
+            transcript += "\n" + segment
+        }
     }
 
-    private func sendTranscribedVoice(_ text: String) async {
-        guard let request = session.beginTranscribedVoice(text, mode: mode, targetDirectory: targetDirectory) else {
+    private func send(_ text: String) async {
+        guard let request = session.beginTranscript(text, mode: mode, targetDirectory: targetDirectory) else {
             return
         }
 

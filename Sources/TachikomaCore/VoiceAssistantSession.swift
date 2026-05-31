@@ -234,6 +234,11 @@ public struct VoiceAssistantSession {
         state = .transcribing
     }
 
+    public mutating func finishTranscribing() {
+        guard state == .transcribing else { return }
+        state = isMicrophoneEnabled ? .listening : .idle
+    }
+
     public mutating func markExecutionStarted() -> ExecutionPlan? {
         guard state == .awaitingApproval, let plan = pendingPlan else {
             fail("承認待ちの実行計画がありません。")

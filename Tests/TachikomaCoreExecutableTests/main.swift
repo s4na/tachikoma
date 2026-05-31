@@ -13,6 +13,7 @@ enum TachikomaCoreExecutableTests {
         try transcribedVoiceCanSendAfterTranscribing()
         try microphoneToggleDoesNotInterruptThinking()
         try microphoneToggleDoesNotBreakApprovalState()
+        transcriptionFinishReturnsToListeningWhenMicrophoneIsOn()
         try executionCanOnlyStartAfterApproval()
         try commandEscapesSingleQuotes()
         try optionLikeRequestsArePassedAsPromptArguments()
@@ -132,6 +133,17 @@ enum TachikomaCoreExecutableTests {
 
         assert(session.state == .awaitingApproval)
         assert(session.pendingPlan != nil)
+    }
+
+    static func transcriptionFinishReturnsToListeningWhenMicrophoneIsOn() {
+        var session = VoiceAssistantSession()
+
+        session.setMicrophoneEnabled(true)
+        session.markTranscribing()
+        session.finishTranscribing()
+
+        assert(session.state == .listening)
+        assert(session.isMicrophoneEnabled)
     }
 
     static func executionCanOnlyStartAfterApproval() throws {
