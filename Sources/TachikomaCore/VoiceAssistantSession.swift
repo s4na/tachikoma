@@ -205,7 +205,7 @@ public struct VoiceAssistantSession {
     }
 
     public mutating func cancelPendingPlan() {
-        guard pendingPlan != nil else { return }
+        guard state == .awaitingApproval, pendingPlan != nil else { return }
 
         pendingPlan = nil
         state = isMicrophoneEnabled ? .listening : .idle

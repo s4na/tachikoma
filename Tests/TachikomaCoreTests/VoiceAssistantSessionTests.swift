@@ -119,6 +119,18 @@ import Testing
     #expect(session.pendingPlan == nil)
 }
 
+@Test func cancelDoesNotInterruptExecutingPlanState() throws {
+    var session = VoiceAssistantSession()
+    let directory = try temporaryDirectory()
+
+    session.receiveTranscript("テストを書いて", mode: .instruction, targetDirectory: directory)
+    _ = session.markExecutionStarted()
+    session.cancelPendingPlan()
+
+    #expect(session.state == .executing)
+    #expect(session.pendingPlan != nil)
+}
+
 private func temporaryDirectory() throws -> String {
     let url = FileManager.default.temporaryDirectory
         .appendingPathComponent("tachikoma-tests", isDirectory: true)

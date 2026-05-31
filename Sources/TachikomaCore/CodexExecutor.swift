@@ -21,6 +21,7 @@ public struct ProcessCodexExecutor: CodexExecuting {
             process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
             process.arguments = ["codex"] + arguments
             process.currentDirectoryURL = URL(fileURLWithPath: workingDirectory, isDirectory: true)
+            process.environment = Self.environment()
 
             let outputPipe = Pipe()
             process.standardOutput = outputPipe
@@ -51,5 +52,25 @@ public struct ProcessCodexExecutor: CodexExecuting {
                 continuation.resume(returning: 127)
             }
         }
+    }
+
+    private static func environment() -> [String: String] {
+        var environment = ProcessInfo.processInfo.environment
+        let existingPath = environment["PATH"] ?? ""
+        let commonPaths = [
+            "/opt/homebrew/bin",
+            "/usr/local/bin",
+            "\(FileManager.default.homeDirectoryForCurrentUser.path)/.local/bin",
+            "\(FileManager.default.homeDirectoryForCurrentUser.path)/.npm-global/bin",
+            "/usr/bin",
+            "/bin",
+            "/usr/sbin",
+            "/sbin"
+        ]
+
+        environment["PATH"] = (commonPaths + [existingPath])
+            .filter { !$0.isEmpty }
+            .joined(separator: ":")
+        return environment
     }
 }

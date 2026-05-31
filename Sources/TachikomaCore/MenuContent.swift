@@ -9,5 +9,6 @@ public enum MenuContent {
         tachikoma
 
         Starts a macOS menu bar app for a voice-driven Codex workflow.
+        It also syncs its login startup setting.
         """
 }
