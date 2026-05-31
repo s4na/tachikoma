@@ -11,7 +11,7 @@ public enum VoiceAssistantState: String, CaseIterable, Equatable {
     case error
 }
 
-public enum ConversationMode: String, CaseIterable, Equatable {
+public enum ConversationMode: String, CaseIterable, Codable, Equatable, Sendable {
     case consultation
     case instruction
 
@@ -78,6 +78,13 @@ public struct ExecutionPlan: Equatable {
     }
 }
 
+public struct VoiceAssistantRequest: Equatable, Sendable {
+    public let mode: ConversationMode
+    public let message: String
+    public let targetDirectory: String
+    public let readonly: Bool
+}
+
 public struct VoiceAssistantSnapshot: Equatable {
     public let state: VoiceAssistantState
     public let isMicrophoneEnabled: Bool
@@ -121,30 +128,30 @@ public struct VoiceAssistantSession {
         appendSystemMessage(enabled ? "マイクをONにしました。" : "マイクをOFFにしました。")
     }
 
-    public mutating func receiveTranscript(
+    public mutating func beginTranscript(
         _ transcript: String,
         mode: ConversationMode,
         targetDirectory: String
-    ) {
+    ) -> VoiceAssistantRequest? {
         guard state != .executing else {
             appendSystemMessage("実行中は新しい依頼を送信できません。")
-            return
+            return nil
         }
         guard state != .awaitingApproval else {
             appendSystemMessage("承認待ちの実行計画があります。実行またはキャンセルしてから送信してください。")
-            return
+            return nil
         }
 
         let request = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !request.isEmpty else {
             fail("発話または入力が空です。")
-            return
+            return nil
         }
 
         let directory = targetDirectory.trimmingCharacters(in: .whitespacesAndNewlines)
         guard Self.isExistingDirectory(directory) else {
             fail("対象ディレクトリが存在しません。")
-            return
+            return nil
         }
 
         errorMessage = nil
@@ -152,28 +159,57 @@ public struct VoiceAssistantSession {
         state = .thinking
         appendMessage(role: .user, text: request)
 
-        switch mode {
+        return VoiceAssistantRequest(
+            mode: mode,
+            message: request,
+            targetDirectory: directory,
+            readonly: mode == .consultation
+        )
+    }
+
+    public mutating func receiveTranscript(
+        _ transcript: String,
+        mode: ConversationMode,
+        targetDirectory: String
+    ) {
+        guard let request = beginTranscript(transcript, mode: mode, targetDirectory: targetDirectory) else {
+            return
+        }
+
+        let response = CodexConversationResponse(message: localFallbackMessage(for: request.mode))
+        complete(request: request, response: response)
+    }
+
+    public mutating func complete(request: VoiceAssistantRequest, response: CodexConversationResponse) {
+        switch request.mode {
         case .consultation:
             appendMessage(
                 role: .assistant,
-                text: """
-                相談モードとして受け付けました。これは readonly 相談フローのプレビューです。
-
-                実行が必要になった場合は、先に命令モードで作業内容と `codex exec` コマンドを整理します。
-                """
+                text: response.message
             )
             state = .completed
         case .instruction:
-            let plan = Self.makeExecutionPlan(for: request, targetDirectory: directory)
+            let plan = Self.makeExecutionPlan(
+                for: request.message,
+                targetDirectory: request.targetDirectory,
+                response: response
+            )
             pendingPlan = plan
             appendMessage(
                 role: .assistant,
-                text: """
-                命令モードとして整理しました。下の実行計画とコマンドを確認し、問題なければ実行してください。
-                """
+                text: response.message
             )
             state = .awaitingApproval
         }
+    }
+
+    public mutating func completeWithError(_ message: String) {
+        fail(message)
+    }
+
+    public mutating func markTranscribing() {
+        guard state != .executing, state != .awaitingApproval else { return }
+        state = .transcribing
     }
 
     public mutating func markExecutionStarted() -> ExecutionPlan? {
@@ -226,21 +262,38 @@ public struct VoiceAssistantSession {
         messages.append(ConversationMessage(role: role, text: text))
     }
 
-    private static func makeExecutionPlan(for request: String, targetDirectory: String) -> ExecutionPlan {
+    private static func makeExecutionPlan(
+        for request: String,
+        targetDirectory: String,
+        response: CodexConversationResponse? = nil
+    ) -> ExecutionPlan {
         ExecutionPlan(
             request: request,
             targetDirectory: targetDirectory,
-            affectedFiles: ["このMVPでは `codex exec` 実行時にCodexが調査して特定します"],
-            workItems: [
+            affectedFiles: response?.affectedFiles ?? ["Codex App Server が実行前に調査して特定します"],
+            workItems: response?.workItems ?? [
                 "要求内容を再確認する",
                 "必要なファイルを調査する",
                 "変更を実装する",
                 "可能な範囲でテストまたはビルドを実行する"
             ],
-            impact: "承認後にのみファイル変更やコマンド実行が発生します。",
+            impact: response?.impact ?? "承認後にのみファイル変更やコマンド実行が発生します。",
             command: "codex exec -- \(shellQuoted(request))",
             arguments: ["exec", "--", request]
         )
+    }
+
+    private func localFallbackMessage(for mode: ConversationMode) -> String {
+        switch mode {
+        case .consultation:
+            return """
+            相談モードとして受け付けました。Codex App Server が未接続の場合のローカルプレビュー応答です。
+
+            実際のリポジトリ調査・コード読解・設計レビューは Codex App Server 接続後に行います。
+            """
+        case .instruction:
+            return "命令モードとして整理しました。下の実行計画とコマンドを確認し、問題なければ実行してください。"
+        }
     }
 
     private static func isExistingDirectory(_ path: String) -> Bool {

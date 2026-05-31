@@ -7,6 +7,7 @@ struct VoiceAssistantWindow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             header
+            settings
             Divider()
             conversation
             if let plan = viewModel.pendingPlan {
@@ -34,6 +35,9 @@ struct VoiceAssistantWindow: View {
                 Text("状態: \(stateTitle)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                Text(viewModel.connectionStatus)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
             Spacer()
             Picker("モード", selection: $viewModel.mode) {
@@ -43,10 +47,32 @@ struct VoiceAssistantWindow: View {
             }
             .pickerStyle(.segmented)
             .frame(width: 160)
-            Button(viewModel.isMicrophoneEnabled ? "マイクOFF" : "マイクON") {
+            Button(viewModel.isMicrophoneEnabled ? "録音停止" : "録音開始") {
                 viewModel.toggleMicrophone()
             }
             .disabled(viewModel.state == .awaitingApproval || viewModel.state == .executing)
+        }
+    }
+
+    private var settings: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("VAD")
+                    .font(.caption.bold())
+                Circle()
+                    .fill(viewModel.voiceDetected ? Color.green : Color.gray.opacity(0.45))
+                    .frame(width: 10, height: 10)
+                Text(String(format: "%.1f dB", viewModel.voiceLevel))
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+                Spacer()
+            }
+            TextField("Codex App Server URL", text: $viewModel.appServerEndpoint)
+                .textFieldStyle(.roundedBorder)
+                .disabled(!viewModel.acceptsInput)
+            TextField("whisper.cpp command: use {audio}", text: $viewModel.whisperCommand)
+                .textFieldStyle(.roundedBorder)
+                .disabled(viewModel.isMicrophoneEnabled || !viewModel.acceptsInput)
         }
     }
 

@@ -25,6 +25,32 @@ import Testing
     #expect(session.pendingPlan?.arguments == ["exec", "--", "テストを書いて"])
 }
 
+@Test func instructionUsesAppServerPlanDetails() throws {
+    var session = VoiceAssistantSession()
+    let directory = try temporaryDirectory()
+
+    let request = session.beginTranscript(
+        "APIを作って",
+        mode: .instruction,
+        targetDirectory: directory
+    )
+    #expect(request != nil)
+    session.complete(
+        request: request!,
+        response: CodexConversationResponse(
+            message: "実行計画を整理しました。",
+            affectedFiles: ["Sources/API.swift"],
+            workItems: ["APIエンドポイントを追加する"],
+            impact: "API surface が増えます。"
+        )
+    )
+
+    #expect(session.state == .awaitingApproval)
+    #expect(session.pendingPlan?.affectedFiles == ["Sources/API.swift"])
+    #expect(session.pendingPlan?.workItems == ["APIエンドポイントを追加する"])
+    #expect(session.pendingPlan?.impact == "API surface が増えます。")
+}
+
 @Test func cancelPendingPlanReturnsToIdle() throws {
     var session = VoiceAssistantSession()
     let directory = try temporaryDirectory()

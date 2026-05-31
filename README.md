@@ -8,15 +8,44 @@ Tachikoma は macOS のメニューバーアプリです。
 Voice Assistant では、`plan.md` の安全設計に沿って次の流れを確認できます。
 
 * マイク ON/OFF 状態の切り替え
-* 相談モードでの readonly 相談フロープレビュー
-* 命令モードでの実行計画作成
+* 音声取得、音量ベースの VAD 表示、whisper.cpp CLI による文字起こし
+* Codex App Server への会話送信とストリーミング応答受信
+* 相談モードでの readonly 相談
+* 命令モードでの要件整理と実行計画作成
 * 対象ディレクトリの明示
 * `codex exec` コマンドの表示
 * ユーザー承認後の `codex exec` 実行
 * 実行ログの表示
+* 会話、文字起こし、実行、エラーのローカルログ保存
 
-音声認識と Codex App Server 接続は、今後 whisper.cpp や App Server 実装を差し込むための拡張ポイントです。
-現時点では、Voice Assistant ウィンドウの入力欄から文字起こし済みテキスト相当の内容を送信します。
+Voice Assistant ウィンドウでは、Codex App Server URL と whisper.cpp のコマンドテンプレートを指定できます。
+whisper.cpp のコマンドテンプレートでは、録音した wav ファイルのパスとして `{audio}` を使えます。
+
+Codex App Server には次の JSON を POST します。
+
+```json
+{
+  "mode": "consultation",
+  "message": "このリポジトリの構成を調べて",
+  "targetDirectory": "/path/to/repository",
+  "readonly": true
+}
+```
+
+App Server は `text/event-stream`、`text/plain`、または次の JSON で応答できます。
+
+```json
+{
+  "message": "確認結果または命令整理の説明",
+  "affectedFiles": ["Sources/..."],
+  "workItems": ["実装内容を整理する"],
+  "impact": "承認後にのみ変更されます"
+}
+```
+
+命令モードでは、App Server の応答をもとに実行計画を表示します。
+実行ボタンを押すまで `codex exec -- <prompt>` は起動しません。
+会話ログは `~/Library/Application Support/Tachikoma/Logs/` に JSON Lines 形式で保存されます。
 
 ## Homebrew からインストール
 
