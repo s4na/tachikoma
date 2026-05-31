@@ -226,6 +226,7 @@ public struct VoiceAssistantSession {
 
     public mutating func completeWithError(_ message: String) {
         activeRequestID = nil
+        pendingPlan = nil
         fail(message)
     }
 

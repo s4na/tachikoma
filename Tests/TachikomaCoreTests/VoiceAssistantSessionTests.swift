@@ -156,6 +156,17 @@ import Testing
     #expect(session.pendingPlan == nil)
 }
 
+@Test func errorCompletionClearsPendingPlan() throws {
+    var session = VoiceAssistantSession()
+    let directory = try temporaryDirectory()
+
+    session.receiveTranscript("テストを書いて", mode: .instruction, targetDirectory: directory)
+    session.completeWithError("文字起こしに失敗しました")
+
+    #expect(session.state == .error)
+    #expect(session.pendingPlan == nil)
+}
+
 @Test func cancelDoesNotInterruptExecutingPlanState() throws {
     var session = VoiceAssistantSession()
     let directory = try temporaryDirectory()

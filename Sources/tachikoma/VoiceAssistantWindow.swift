@@ -151,7 +151,7 @@ struct VoiceAssistantWindow: View {
 
     private var logView: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("実行ログ")
+            Text("処理ログ")
                 .font(.headline)
             ScrollView {
                 Text(viewModel.executionLog)

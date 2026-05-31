@@ -19,6 +19,8 @@ final class VoiceAssistantViewModel: ObservableObject {
     private let logStore: ConversationLogStore
     private let voiceInput: VoiceInputController
     private let transcriber: SpeechTranscribing
+    private var pendingSegmentURLs: [URL] = []
+    private var isTranscribingSegment = false
 
     init(
         executor: CodexExecuting = ProcessCodexExecutor(),
@@ -69,9 +71,13 @@ final class VoiceAssistantViewModel: ObservableObject {
 
     func submitTranscript() {
         let text = transcript
+        guard let request = session.beginTranscript(text, mode: mode, targetDirectory: targetDirectory) else {
+            return
+        }
+
         transcript = ""
         Task {
-            await send(text)
+            await send(request)
         }
     }
 
@@ -146,6 +152,15 @@ final class VoiceAssistantViewModel: ObservableObject {
     }
 
     private func transcribeSegment(_ audioURL: URL) {
+        pendingSegmentURLs.append(audioURL)
+        processNextSegmentIfNeeded()
+    }
+
+    private func processNextSegmentIfNeeded() {
+        guard !isTranscribingSegment, !pendingSegmentURLs.isEmpty else { return }
+
+        isTranscribingSegment = true
+        let audioURL = pendingSegmentURLs.removeFirst()
         let shouldReflectTranscription = acceptsInput
         if shouldReflectTranscription {
             session.markTranscribing()
@@ -167,9 +182,14 @@ final class VoiceAssistantViewModel: ObservableObject {
                 }
                 try? logStore.append(ConversationLogEntry(kind: "transcript", text: text))
             } catch {
-                session.completeWithError(error.localizedDescription)
+                if shouldReflectTranscription {
+                    session.completeWithError(error.localizedDescription)
+                }
                 try? logStore.append(ConversationLogEntry(kind: "error", text: error.localizedDescription))
             }
+
+            isTranscribingSegment = false
+            processNextSegmentIfNeeded()
         }
     }
 
@@ -182,14 +202,6 @@ final class VoiceAssistantViewModel: ObservableObject {
         } else {
             transcript += "\n" + segment
         }
-    }
-
-    private func send(_ text: String) async {
-        guard let request = session.beginTranscript(text, mode: mode, targetDirectory: targetDirectory) else {
-            return
-        }
-
-        await send(request)
     }
 
     private func send(_ request: VoiceAssistantRequest) async {

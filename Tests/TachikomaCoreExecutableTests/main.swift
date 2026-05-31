@@ -10,6 +10,7 @@ enum TachikomaCoreExecutableTests {
         try cancelPendingPlanReturnsToIdle()
         missingDirectoryIsRejected()
         try busyRequestBlocksNewTranscript()
+        try pendingPlanBlocksNewTranscriptWithoutClearingPlan()
         try transcribedVoiceCanSendAfterTranscribing()
         try microphoneToggleDoesNotInterruptThinking()
         try microphoneToggleDoesNotBreakApprovalState()
@@ -18,6 +19,7 @@ enum TachikomaCoreExecutableTests {
         try commandEscapesSingleQuotes()
         try optionLikeRequestsArePassedAsPromptArguments()
         try failedExecutionClearsPendingPlan()
+        try errorCompletionClearsPendingPlan()
         try cancelDoesNotInterruptExecutingPlanState()
     }
 
@@ -101,6 +103,18 @@ enum TachikomaCoreExecutableTests {
         assert(request != nil)
         assert(blocked == nil)
         assert(session.state == .thinking)
+    }
+
+    static func pendingPlanBlocksNewTranscriptWithoutClearingPlan() throws {
+        var session = VoiceAssistantSession()
+        let directory = try temporaryDirectory()
+
+        session.receiveTranscript("テストを書いて", mode: .instruction, targetDirectory: directory)
+        let firstPlan = session.pendingPlan
+        session.receiveTranscript("別の変更をして", mode: .instruction, targetDirectory: directory)
+
+        assert(session.state == .awaitingApproval)
+        assert(session.pendingPlan == firstPlan)
     }
 
     static func transcribedVoiceCanSendAfterTranscribing() throws {
@@ -188,6 +202,17 @@ enum TachikomaCoreExecutableTests {
         session.receiveTranscript("テストを書いて", mode: .instruction, targetDirectory: directory)
         _ = session.markExecutionStarted()
         session.markExecutionCompleted(exitCode: 1)
+
+        assert(session.state == .error)
+        assert(session.pendingPlan == nil)
+    }
+
+    static func errorCompletionClearsPendingPlan() throws {
+        var session = VoiceAssistantSession()
+        let directory = try temporaryDirectory()
+
+        session.receiveTranscript("テストを書いて", mode: .instruction, targetDirectory: directory)
+        session.completeWithError("文字起こしに失敗しました")
 
         assert(session.state == .error)
         assert(session.pendingPlan == nil)

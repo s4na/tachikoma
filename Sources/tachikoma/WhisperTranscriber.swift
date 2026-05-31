@@ -60,10 +60,16 @@ struct WhisperCLITranscriber: SpeechTranscribing {
     }
 
     private static func bestTranscript(from output: String, audioURL: URL) -> String {
-        let textURL = audioURL.deletingPathExtension().appendingPathExtension("txt")
-        if let text = try? String(contentsOf: textURL, encoding: .utf8),
-           !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let candidateTextURLs = [
+            URL(fileURLWithPath: audioURL.path + ".txt"),
+            audioURL.deletingPathExtension().appendingPathExtension("txt")
+        ]
+
+        for textURL in candidateTextURLs {
+            if let text = try? String(contentsOf: textURL, encoding: .utf8),
+               !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                return text.trimmingCharacters(in: .whitespacesAndNewlines)
+            }
         }
 
         return output
