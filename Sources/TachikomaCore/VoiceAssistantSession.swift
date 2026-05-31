@@ -168,6 +168,19 @@ public struct VoiceAssistantSession {
         )
     }
 
+    public mutating func beginTranscribedVoice(
+        _ transcript: String,
+        mode: ConversationMode,
+        targetDirectory: String
+    ) -> VoiceAssistantRequest? {
+        guard state == .transcribing else {
+            return beginTranscript(transcript, mode: mode, targetDirectory: targetDirectory)
+        }
+
+        state = .idle
+        return beginTranscript(transcript, mode: mode, targetDirectory: targetDirectory)
+    }
+
     public mutating func receiveTranscript(
         _ transcript: String,
         mode: ConversationMode,

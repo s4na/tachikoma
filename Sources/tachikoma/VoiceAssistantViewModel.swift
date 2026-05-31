@@ -146,7 +146,7 @@ final class VoiceAssistantViewModel: ObservableObject {
                 }
                 transcript = text
                 try? logStore.append(ConversationLogEntry(kind: "transcript", text: text))
-                await send(text)
+                await sendTranscribedVoice(text)
             } catch {
                 session.completeWithError(error.localizedDescription)
                 try? logStore.append(ConversationLogEntry(kind: "error", text: error.localizedDescription))
@@ -159,6 +159,18 @@ final class VoiceAssistantViewModel: ObservableObject {
             return
         }
 
+        await send(request)
+    }
+
+    private func sendTranscribedVoice(_ text: String) async {
+        guard let request = session.beginTranscribedVoice(text, mode: mode, targetDirectory: targetDirectory) else {
+            return
+        }
+
+        await send(request)
+    }
+
+    private func send(_ request: VoiceAssistantRequest) async {
         try? logStore.append(ConversationLogEntry(kind: "user", text: request.message))
         connectionStatus = "Codex App Serverへ送信中"
 

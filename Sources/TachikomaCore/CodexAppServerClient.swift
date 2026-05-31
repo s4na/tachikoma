@@ -95,6 +95,8 @@ public struct CodexAppServerClient: CodexAppServerConnecting {
                 guard payload != "[DONE]" else { continue }
                 collectedLines.append(payload)
                 onDelta(payload)
+            } else if Self.isSSEControlLine(line) {
+                continue
             } else {
                 collectedLines.append(line)
                 onDelta(line)
@@ -122,5 +124,13 @@ public struct CodexAppServerClient: CodexAppServerConnecting {
             return String(payload.dropFirst())
         }
         return String(payload)
+    }
+
+    private static func isSSEControlLine(_ line: String) -> Bool {
+        line.isEmpty ||
+            line.hasPrefix(":") ||
+            line.hasPrefix("event:") ||
+            line.hasPrefix("id:") ||
+            line.hasPrefix("retry:")
     }
 }
