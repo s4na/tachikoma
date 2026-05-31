@@ -3,7 +3,19 @@
 Tachikoma は macOS のメニューバーアプリです。
 
 現在の MVP では、macOS のメニューバーに小さな `t` を表示します。
-クリックすると `tachikoma です`、設定、終了項目を含むメニューが開きます。
+クリックすると `tachikoma です`、Voice Assistant、設定、終了項目を含むメニューが開きます。
+
+Voice Assistant では、`plan.md` の安全設計に沿って次の流れを確認できます。
+
+* マイク ON/OFF 状態の切り替え
+* 相談モードでの readonly 前提の会話
+* 命令モードでの実行計画作成
+* `codex exec` コマンドの表示
+* ユーザー承認後の `codex exec` 実行
+* 実行ログの表示
+
+音声認識と Codex App Server 接続は、今後 whisper.cpp や App Server 実装を差し込むための拡張ポイントです。
+現時点では、Voice Assistant ウィンドウの入力欄から文字起こし済みテキスト相当の内容を送信します。
 
 ## Homebrew からインストール
 
