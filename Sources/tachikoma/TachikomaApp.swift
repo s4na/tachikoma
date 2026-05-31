@@ -118,6 +118,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 extension AppDelegate: NSWindowDelegate {
     func windowWillClose(_ notification: Notification) {
         if notification.object as? NSWindow === assistantWindow {
+            assistantViewModel.stopVoiceInputForWindowClose()
             assistantWindow = nil
         }
     }

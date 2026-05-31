@@ -80,6 +80,7 @@ brew uninstall s4na/tachikoma/tachikoma
 ```sh
 swift build
 swift test
+swift run tachikoma-core-tests
 swift run tachikoma --help
 ```
 

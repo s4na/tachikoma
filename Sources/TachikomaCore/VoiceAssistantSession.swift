@@ -79,6 +79,7 @@ public struct ExecutionPlan: Equatable {
 }
 
 public struct VoiceAssistantRequest: Equatable, Sendable {
+    public let id: UUID
     public let mode: ConversationMode
     public let message: String
     public let targetDirectory: String
@@ -101,6 +102,7 @@ public struct VoiceAssistantSession {
     public private(set) var pendingPlan: ExecutionPlan?
     public private(set) var executionLog = ""
     public private(set) var errorMessage: String?
+    private var activeRequestID: UUID?
 
     public init() {}
 
@@ -133,12 +135,8 @@ public struct VoiceAssistantSession {
         mode: ConversationMode,
         targetDirectory: String
     ) -> VoiceAssistantRequest? {
-        guard state != .executing else {
-            appendSystemMessage("実行中は新しい依頼を送信できません。")
-            return nil
-        }
-        guard state != .awaitingApproval else {
-            appendSystemMessage("承認待ちの実行計画があります。実行またはキャンセルしてから送信してください。")
+        guard !isBusy else {
+            appendSystemMessage("処理中の依頼があります。完了、実行、またはキャンセルしてから送信してください。")
             return nil
         }
 
@@ -157,13 +155,16 @@ public struct VoiceAssistantSession {
         errorMessage = nil
         pendingPlan = nil
         state = .thinking
+        let requestID = UUID()
+        activeRequestID = requestID
         appendMessage(role: .user, text: request)
 
         return VoiceAssistantRequest(
+            id: requestID,
             mode: mode,
             message: request,
             targetDirectory: directory,
-            readonly: mode == .consultation
+            readonly: true
         )
     }
 
@@ -181,6 +182,9 @@ public struct VoiceAssistantSession {
     }
 
     public mutating func complete(request: VoiceAssistantRequest, response: CodexConversationResponse) {
+        guard activeRequestID == request.id else { return }
+        activeRequestID = nil
+
         switch request.mode {
         case .consultation:
             appendMessage(
@@ -204,6 +208,7 @@ public struct VoiceAssistantSession {
     }
 
     public mutating func completeWithError(_ message: String) {
+        activeRequestID = nil
         fail(message)
     }
 
@@ -232,10 +237,12 @@ public struct VoiceAssistantSession {
         if exitCode == 0 {
             state = .completed
             pendingPlan = nil
+            activeRequestID = nil
             appendSystemMessage("`codex exec` が完了しました。")
         } else {
             state = .error
             pendingPlan = nil
+            activeRequestID = nil
             errorMessage = "`codex exec` が終了コード \(exitCode) で終了しました。"
         }
     }
@@ -244,8 +251,18 @@ public struct VoiceAssistantSession {
         guard state == .awaitingApproval, pendingPlan != nil else { return }
 
         pendingPlan = nil
+        activeRequestID = nil
         state = isMicrophoneEnabled ? .listening : .idle
         appendSystemMessage("実行計画をキャンセルしました。")
+    }
+
+    private var isBusy: Bool {
+        switch state {
+        case .transcribing, .thinking, .awaitingApproval, .executing:
+            return true
+        case .idle, .listening, .completed, .error:
+            return false
+        }
     }
 
     private mutating func fail(_ message: String) {

@@ -90,10 +90,12 @@ public struct CodexAppServerClient: CodexAppServerConnecting {
             throw CodexAppServerError.httpStatus(httpResponse.statusCode, collected)
         }
 
+        var lines: [String] = []
         for try await line in bytes.lines {
             let chunk = Self.payload(from: line)
             guard !chunk.isEmpty else { continue }
-            collected += chunk
+            lines.append(chunk)
+            collected = lines.joined(separator: "\n")
             onDelta(chunk)
         }
 

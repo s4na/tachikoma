@@ -44,7 +44,14 @@ final class VoiceAssistantViewModel: ObservableObject {
     var pendingPlan: ExecutionPlan? { session.pendingPlan }
     var executionLog: String { session.executionLog }
     var errorMessage: String? { session.errorMessage }
-    var acceptsInput: Bool { state != .awaitingApproval && state != .executing }
+    var acceptsInput: Bool {
+        switch state {
+        case .transcribing, .thinking, .awaitingApproval, .executing:
+            return false
+        case .idle, .listening, .completed, .error:
+            return true
+        }
+    }
 
     func toggleMicrophone() {
         if voiceInput.isRecording {
@@ -77,9 +84,19 @@ final class VoiceAssistantViewModel: ObservableObject {
             ) { [weak self] output in
                 Task { @MainActor in
                     self?.session.appendExecutionLog(output)
+                    try? self?.logStore.append(ConversationLogEntry(kind: "execution-output", text: output))
                 }
             }
             session.markExecutionCompleted(exitCode: exitCode)
+            try? logStore.append(ConversationLogEntry(kind: "execution-finished", text: "exitCode=\(exitCode)"))
+        }
+    }
+
+    func stopVoiceInputForWindowClose() {
+        if voiceInput.isRecording {
+            _ = voiceInput.stopRecording()
+            session.setMicrophoneEnabled(false)
+            try? logStore.append(ConversationLogEntry(kind: "voice", text: "recording stopped because window closed"))
         }
     }
 
@@ -104,6 +121,7 @@ final class VoiceAssistantViewModel: ObservableObject {
                 try? logStore.append(ConversationLogEntry(kind: "voice", text: "recording started"))
             } catch {
                 session.completeWithError(error.localizedDescription)
+                try? logStore.append(ConversationLogEntry(kind: "error", text: error.localizedDescription))
             }
         }
     }
@@ -131,6 +149,7 @@ final class VoiceAssistantViewModel: ObservableObject {
                 await send(text)
             } catch {
                 session.completeWithError(error.localizedDescription)
+                try? logStore.append(ConversationLogEntry(kind: "error", text: error.localizedDescription))
             }
         }
     }
