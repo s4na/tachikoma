@@ -11,6 +11,7 @@ enum TachikomaCoreExecutableTests {
         missingDirectoryIsRejected()
         try busyRequestBlocksNewTranscript()
         try transcribedVoiceCanSendAfterTranscribing()
+        try microphoneToggleDoesNotInterruptThinking()
         try microphoneToggleDoesNotBreakApprovalState()
         try executionCanOnlyStartAfterApproval()
         try commandEscapesSingleQuotes()
@@ -109,6 +110,16 @@ enum TachikomaCoreExecutableTests {
         let request = session.beginTranscribedVoice("音声からの依頼", mode: .consultation, targetDirectory: directory)
 
         assert(request != nil)
+        assert(session.state == .thinking)
+    }
+
+    static func microphoneToggleDoesNotInterruptThinking() throws {
+        var session = VoiceAssistantSession()
+        let directory = try temporaryDirectory()
+
+        _ = session.beginTranscript("相談したい", mode: .consultation, targetDirectory: directory)
+        session.setMicrophoneEnabled(false)
+
         assert(session.state == .thinking)
     }
 

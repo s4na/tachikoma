@@ -83,6 +83,10 @@ public struct CodexAppServerClient: CodexAppServerConnecting {
         let (bytes, response) = try await session.bytes(for: urlRequest)
         var collectedLines: [String] = []
 
+        let isEventStream = (response as? HTTPURLResponse)?
+            .value(forHTTPHeaderField: "Content-Type")?
+            .localizedCaseInsensitiveContains("text/event-stream") == true
+
         if let httpResponse = response as? HTTPURLResponse, !(200 ..< 300).contains(httpResponse.statusCode) {
             for try await line in bytes.lines {
                 collectedLines.append(line)
@@ -91,11 +95,11 @@ public struct CodexAppServerClient: CodexAppServerConnecting {
         }
 
         for try await line in bytes.lines {
-            if let payload = Self.ssePayload(from: line) {
+            if isEventStream, let payload = Self.ssePayload(from: line) {
                 guard payload != "[DONE]" else { continue }
                 collectedLines.append(payload)
                 onDelta(payload)
-            } else if Self.isSSEControlLine(line) {
+            } else if isEventStream, Self.isSSEControlLine(line) {
                 continue
             } else {
                 collectedLines.append(line)

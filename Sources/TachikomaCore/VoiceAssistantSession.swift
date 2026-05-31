@@ -121,7 +121,7 @@ public struct VoiceAssistantSession {
         isMicrophoneEnabled = enabled
 
         switch state {
-        case .awaitingApproval, .executing:
+        case .transcribing, .thinking, .awaitingApproval, .executing:
             break
         default:
             state = enabled ? .listening : .idle
@@ -173,6 +173,10 @@ public struct VoiceAssistantSession {
         mode: ConversationMode,
         targetDirectory: String
     ) -> VoiceAssistantRequest? {
+        guard activeRequestID == nil else {
+            appendSystemMessage("処理中の依頼があります。完了してから送信してください。")
+            return nil
+        }
         guard state == .transcribing else {
             return beginTranscript(transcript, mode: mode, targetDirectory: targetDirectory)
         }
