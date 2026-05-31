@@ -81,24 +81,27 @@ public struct CodexAppServerClient: CodexAppServerConnecting {
         urlRequest.httpBody = try JSONEncoder().encode(request)
 
         let (bytes, response) = try await session.bytes(for: urlRequest)
-        var collected = ""
+        var collectedLines: [String] = []
 
         if let httpResponse = response as? HTTPURLResponse, !(200 ..< 300).contains(httpResponse.statusCode) {
             for try await line in bytes.lines {
-                collected += line + "\n"
+                collectedLines.append(line)
             }
-            throw CodexAppServerError.httpStatus(httpResponse.statusCode, collected)
+            throw CodexAppServerError.httpStatus(httpResponse.statusCode, collectedLines.joined(separator: "\n"))
         }
 
-        var lines: [String] = []
         for try await line in bytes.lines {
-            let chunk = Self.payload(from: line)
-            guard !chunk.isEmpty else { continue }
-            lines.append(chunk)
-            collected = lines.joined(separator: "\n")
-            onDelta(chunk)
+            if let payload = Self.ssePayload(from: line) {
+                guard payload != "[DONE]" else { continue }
+                collectedLines.append(payload)
+                onDelta(payload)
+            } else {
+                collectedLines.append(line)
+                onDelta(line)
+            }
         }
 
+        let collected = collectedLines.joined(separator: "\n")
         guard !collected.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw CodexAppServerError.emptyResponse
         }
@@ -108,15 +111,16 @@ public struct CodexAppServerClient: CodexAppServerConnecting {
             return decoded
         }
 
-        return CodexConversationResponse(message: collected.trimmingCharacters(in: .whitespacesAndNewlines))
+        return CodexConversationResponse(message: collected)
     }
 
-    private static func payload(from line: String) -> String {
-        if line.hasPrefix("data:") {
-            let value = line.dropFirst("data:".count).trimmingCharacters(in: .whitespaces)
-            return value == "[DONE]" ? "" : value
-        }
+    private static func ssePayload(from line: String) -> String? {
+        guard line.hasPrefix("data:") else { return nil }
 
-        return line
+        let payload = line.dropFirst("data:".count)
+        if payload.first == " " {
+            return String(payload.dropFirst())
+        }
+        return String(payload)
     }
 }

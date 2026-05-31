@@ -50,7 +50,7 @@ struct VoiceAssistantWindow: View {
             Button(viewModel.isMicrophoneEnabled ? "録音停止" : "録音開始") {
                 viewModel.toggleMicrophone()
             }
-            .disabled(viewModel.state == .awaitingApproval || viewModel.state == .executing)
+            .disabled(!viewModel.isMicrophoneEnabled && !viewModel.acceptsInput)
         }
     }
 
@@ -168,6 +168,7 @@ struct VoiceAssistantWindow: View {
             TextEditor(text: $viewModel.transcript)
                 .font(.body)
                 .frame(height: 90)
+                .disabled(!viewModel.acceptsInput)
                 .overlay(
                     RoundedRectangle(cornerRadius: 8)
                         .stroke(Color(nsColor: .separatorColor))

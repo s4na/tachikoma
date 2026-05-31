@@ -56,7 +56,7 @@ final class VoiceAssistantViewModel: ObservableObject {
     func toggleMicrophone() {
         if voiceInput.isRecording {
             stopRecordingAndTranscribe()
-        } else {
+        } else if acceptsInput {
             startRecording()
         }
     }
