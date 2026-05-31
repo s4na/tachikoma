@@ -21,7 +21,8 @@ import Testing
 
     #expect(session.state == .awaitingApproval)
     #expect(session.pendingPlan?.targetDirectory == directory)
-    #expect(session.pendingPlan?.command == "codex exec 'テストを書いて'")
+    #expect(session.pendingPlan?.command == "codex exec -- 'テストを書いて'")
+    #expect(session.pendingPlan?.arguments == ["exec", "--", "テストを書いて"])
 }
 
 @Test func cancelPendingPlanReturnsToIdle() throws {
@@ -92,7 +93,30 @@ import Testing
 
     session.receiveTranscript("Bob's testを直して", mode: .instruction, targetDirectory: directory)
 
-    #expect(session.pendingPlan?.command == "codex exec 'Bob'\\''s testを直して'")
+    #expect(session.pendingPlan?.command == "codex exec -- 'Bob'\\''s testを直して'")
+    #expect(session.pendingPlan?.arguments == ["exec", "--", "Bob's testを直して"])
+}
+
+@Test func optionLikeRequestsArePassedAsPromptArguments() throws {
+    var session = VoiceAssistantSession()
+    let directory = try temporaryDirectory()
+
+    session.receiveTranscript("--help", mode: .instruction, targetDirectory: directory)
+
+    #expect(session.pendingPlan?.command == "codex exec -- '--help'")
+    #expect(session.pendingPlan?.arguments == ["exec", "--", "--help"])
+}
+
+@Test func failedExecutionClearsPendingPlan() throws {
+    var session = VoiceAssistantSession()
+    let directory = try temporaryDirectory()
+
+    session.receiveTranscript("テストを書いて", mode: .instruction, targetDirectory: directory)
+    _ = session.markExecutionStarted()
+    session.markExecutionCompleted(exitCode: 1)
+
+    #expect(session.state == .error)
+    #expect(session.pendingPlan == nil)
 }
 
 private func temporaryDirectory() throws -> String {

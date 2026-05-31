@@ -31,6 +31,6 @@ class Tachikoma < Formula
   end
 
   test do
-    assert_match "syncs its login startup setting", shell_output("#{bin}/tachikoma --help")
+    assert_match "voice-driven Codex workflow", shell_output("#{bin}/tachikoma --help")
   end
 end

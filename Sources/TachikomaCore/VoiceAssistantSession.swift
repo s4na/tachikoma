@@ -57,6 +57,7 @@ public struct ExecutionPlan: Equatable {
     public let workItems: [String]
     public let impact: String
     public let command: String
+    public let arguments: [String]
 
     public init(
         request: String,
@@ -64,7 +65,8 @@ public struct ExecutionPlan: Equatable {
         affectedFiles: [String],
         workItems: [String],
         impact: String,
-        command: String
+        command: String,
+        arguments: [String]
     ) {
         self.request = request
         self.targetDirectory = targetDirectory
@@ -72,6 +74,7 @@ public struct ExecutionPlan: Equatable {
         self.workItems = workItems
         self.impact = impact
         self.command = command
+        self.arguments = arguments
     }
 }
 
@@ -196,6 +199,7 @@ public struct VoiceAssistantSession {
             appendSystemMessage("`codex exec` が完了しました。")
         } else {
             state = .error
+            pendingPlan = nil
             errorMessage = "`codex exec` が終了コード \(exitCode) で終了しました。"
         }
     }
@@ -234,7 +238,8 @@ public struct VoiceAssistantSession {
                 "可能な範囲でテストまたはビルドを実行する"
             ],
             impact: "承認後にのみファイル変更やコマンド実行が発生します。",
-            command: "codex exec \(shellQuoted(request))"
+            command: "codex exec -- \(shellQuoted(request))",
+            arguments: ["exec", "--", request]
         )
     }
 

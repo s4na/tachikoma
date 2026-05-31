@@ -42,7 +42,7 @@ final class VoiceAssistantViewModel: ObservableObject {
         let executor = executor
         Task {
             let exitCode = await executor.execute(
-                command: plan.command,
+                arguments: plan.arguments,
                 workingDirectory: plan.targetDirectory
             ) { [weak self] output in
                 Task { @MainActor in

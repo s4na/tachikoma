@@ -2,7 +2,7 @@ import Foundation
 
 public protocol CodexExecuting: Sendable {
     func execute(
-        command: String,
+        arguments: [String],
         workingDirectory: String,
         onOutput: @escaping @Sendable (String) -> Void
     ) async -> Int32
@@ -12,14 +12,14 @@ public struct ProcessCodexExecutor: CodexExecuting {
     public init() {}
 
     public func execute(
-        command: String,
+        arguments: [String],
         workingDirectory: String,
         onOutput: @escaping @Sendable (String) -> Void
     ) async -> Int32 {
         await withCheckedContinuation { continuation in
             let process = Process()
-            process.executableURL = URL(fileURLWithPath: "/bin/zsh")
-            process.arguments = ["-lc", command]
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+            process.arguments = ["codex"] + arguments
             process.currentDirectoryURL = URL(fileURLWithPath: workingDirectory, isDirectory: true)
 
             let outputPipe = Pipe()
