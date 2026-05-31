@@ -1,6 +1,6 @@
 import Foundation
 
-public protocol CodexExecuting {
+public protocol CodexExecuting: Sendable {
     func execute(
         command: String,
         workingDirectory: String,
@@ -36,6 +36,10 @@ public struct ProcessCodexExecutor: CodexExecuting {
 
             process.terminationHandler = { terminatedProcess in
                 outputPipe.fileHandleForReading.readabilityHandler = nil
+                let remainingData = outputPipe.fileHandleForReading.readDataToEndOfFile()
+                if !remainingData.isEmpty, let text = String(data: remainingData, encoding: .utf8) {
+                    onOutput(text)
+                }
                 continuation.resume(returning: terminatedProcess.terminationStatus)
             }
 

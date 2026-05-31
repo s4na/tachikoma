@@ -8,7 +8,7 @@ Tachikoma は macOS のメニューバーアプリです。
 Voice Assistant では、`plan.md` の安全設計に沿って次の流れを確認できます。
 
 * マイク ON/OFF 状態の切り替え
-* 相談モードでの readonly 前提の会話
+* 相談モードでの readonly 相談フロープレビュー
 * 命令モードでの実行計画作成
 * 対象ディレクトリの明示
 * `codex exec` コマンドの表示
@@ -50,6 +50,7 @@ brew uninstall s4na/tachikoma/tachikoma
 
 ```sh
 swift build
+swift test
 swift run tachikoma --help
 ```
 

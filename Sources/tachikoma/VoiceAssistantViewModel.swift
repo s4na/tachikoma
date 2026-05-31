@@ -39,6 +39,7 @@ final class VoiceAssistantViewModel: ObservableObject {
     func executePendingPlan() {
         guard let plan = session.markExecutionStarted() else { return }
 
+        let executor = executor
         Task {
             let exitCode = await executor.execute(
                 command: plan.command,

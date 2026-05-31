@@ -1,0 +1,104 @@
+import Foundation
+import Testing
+@testable import TachikomaCore
+
+@Test func consultationDoesNotCreateExecutionPlan() throws {
+    var session = VoiceAssistantSession()
+    let directory = try temporaryDirectory()
+
+    session.receiveTranscript("この設計案どう思う？", mode: .consultation, targetDirectory: directory)
+
+    #expect(session.state == .completed)
+    #expect(session.pendingPlan == nil)
+    #expect(session.messages.contains { $0.text.contains("プレビュー") })
+}
+
+@Test func instructionRequiresApprovalBeforeExecution() throws {
+    var session = VoiceAssistantSession()
+    let directory = try temporaryDirectory()
+
+    session.receiveTranscript("テストを書いて", mode: .instruction, targetDirectory: directory)
+
+    #expect(session.state == .awaitingApproval)
+    #expect(session.pendingPlan?.targetDirectory == directory)
+    #expect(session.pendingPlan?.command == "codex exec 'テストを書いて'")
+}
+
+@Test func cancelPendingPlanReturnsToIdle() throws {
+    var session = VoiceAssistantSession()
+    let directory = try temporaryDirectory()
+
+    session.receiveTranscript("テストを書いて", mode: .instruction, targetDirectory: directory)
+    session.cancelPendingPlan()
+
+    #expect(session.state == .idle)
+    #expect(session.pendingPlan == nil)
+}
+
+@Test func missingDirectoryIsRejected() {
+    var session = VoiceAssistantSession()
+
+    session.receiveTranscript(
+        "テストを書いて",
+        mode: .instruction,
+        targetDirectory: "/tmp/tachikoma-missing-\(UUID().uuidString)"
+    )
+
+    #expect(session.state == .error)
+    #expect(session.pendingPlan == nil)
+}
+
+@Test func pendingPlanBlocksNewTranscriptWithoutClearingPlan() throws {
+    var session = VoiceAssistantSession()
+    let directory = try temporaryDirectory()
+
+    session.receiveTranscript("テストを書いて", mode: .instruction, targetDirectory: directory)
+    let firstPlan = session.pendingPlan
+    session.receiveTranscript("別の変更をして", mode: .instruction, targetDirectory: directory)
+
+    #expect(session.state == .awaitingApproval)
+    #expect(session.pendingPlan == firstPlan)
+}
+
+@Test func microphoneToggleDoesNotBreakApprovalState() throws {
+    var session = VoiceAssistantSession()
+    let directory = try temporaryDirectory()
+
+    session.receiveTranscript("テストを書いて", mode: .instruction, targetDirectory: directory)
+    session.setMicrophoneEnabled(true)
+
+    #expect(session.state == .awaitingApproval)
+    #expect(session.pendingPlan != nil)
+}
+
+@Test func executionCanOnlyStartAfterApproval() throws {
+    var session = VoiceAssistantSession()
+    let directory = try temporaryDirectory()
+
+    #expect(session.markExecutionStarted() == nil)
+    #expect(session.state == .error)
+
+    session = VoiceAssistantSession()
+    session.receiveTranscript("テストを書いて", mode: .instruction, targetDirectory: directory)
+    let plan = session.markExecutionStarted()
+
+    #expect(plan?.targetDirectory == directory)
+    #expect(session.state == .executing)
+}
+
+@Test func commandEscapesSingleQuotes() throws {
+    var session = VoiceAssistantSession()
+    let directory = try temporaryDirectory()
+
+    session.receiveTranscript("Bob's testを直して", mode: .instruction, targetDirectory: directory)
+
+    #expect(session.pendingPlan?.command == "codex exec 'Bob'\\''s testを直して'")
+}
+
+private func temporaryDirectory() throws -> String {
+    let url = FileManager.default.temporaryDirectory
+        .appendingPathComponent("tachikoma-tests", isDirectory: true)
+        .appendingPathComponent(UUID().uuidString, isDirectory: true)
+    try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+    return url.path
+}

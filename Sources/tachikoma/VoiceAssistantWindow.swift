@@ -84,7 +84,7 @@ struct VoiceAssistantWindow: View {
             Text("対象ディレクトリ: \(plan.targetDirectory)")
                 .font(.caption)
                 .textSelection(.enabled)
-            planList("変更対象", plan.affectedFiles)
+            planList("変更対象の特定方法", plan.affectedFiles)
             planList("作業内容", plan.workItems)
             Text("影響: \(plan.impact)")
                 .font(.caption)

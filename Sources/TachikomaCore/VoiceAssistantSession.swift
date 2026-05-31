@@ -154,7 +154,7 @@ public struct VoiceAssistantSession {
             appendMessage(
                 role: .assistant,
                 text: """
-                相談モードとして受け付けました。readonly 前提で調査・読解・提案を行います。
+                相談モードとして受け付けました。これは readonly 相談フローのプレビューです。
 
                 実行が必要になった場合は、先に命令モードで作業内容と `codex exec` コマンドを整理します。
                 """
@@ -226,7 +226,7 @@ public struct VoiceAssistantSession {
         ExecutionPlan(
             request: request,
             targetDirectory: targetDirectory,
-            affectedFiles: ["Codex が実行前に調査して特定します"],
+            affectedFiles: ["このMVPでは `codex exec` 実行時にCodexが調査して特定します"],
             workItems: [
                 "要求内容を再確認する",
                 "必要なファイルを調査する",
