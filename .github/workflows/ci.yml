@@ -29,5 +29,8 @@ jobs:
       - name: Build
         run: swift build
 
+      - name: Run core executable tests
+        run: swift run tachikoma-core-tests
+
       - name: Check executable help
         run: swift run tachikoma --help

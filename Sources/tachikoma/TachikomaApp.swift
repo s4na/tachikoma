@@ -1,9 +1,12 @@
 import AppKit
+import SwiftUI
 import TachikomaCore
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
+    private var assistantWindow: NSWindow?
+    private let assistantViewModel = VoiceAssistantViewModel()
     private let startupManager = LaunchAgentManager()
     private let defaults = LaunchAgentManager.startupDefaults()
     private var startupOffItem: NSMenuItem?
@@ -25,6 +28,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let greetingItem = NSMenuItem(title: MenuContent.greeting, action: nil, keyEquivalent: "")
         greetingItem.isEnabled = false
         menu.addItem(greetingItem)
+
+        menu.addItem(.separator())
+
+        let assistantItem = NSMenuItem(
+            title: MenuContent.openAssistantTitle,
+            action: #selector(openAssistant),
+            keyEquivalent: "o"
+        )
+        assistantItem.target = self
+        menu.addItem(assistantItem)
 
         menu.addItem(.separator())
 
@@ -55,6 +68,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return menu
     }
 
+    @objc private func openAssistant() {
+        if let assistantWindow {
+            assistantWindow.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 720, height: 760),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "Tachikoma Voice Assistant"
+        window.center()
+        window.contentView = NSHostingView(rootView: VoiceAssistantWindow(viewModel: assistantViewModel))
+        window.isReleasedWhenClosed = false
+        window.delegate = self
+        assistantWindow = window
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
     private var isStartupOff: Bool {
         defaults.bool(forKey: LaunchAgentManager.startupOffDefaultsKey)
     }
@@ -76,6 +112,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func quit() {
         NSApp.terminate(nil)
+    }
+}
+
+extension AppDelegate: NSWindowDelegate {
+    func windowWillClose(_ notification: Notification) {
+        if notification.object as? NSWindow === assistantWindow {
+            assistantViewModel.stopVoiceInputForWindowClose()
+            assistantWindow = nil
+        }
     }
 }
 
